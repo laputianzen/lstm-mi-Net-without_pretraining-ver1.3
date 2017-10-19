@@ -550,7 +550,6 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
     
     fold = FLAGS.fold
     if not os.path.exists(FLAGS._confusion_dir):
-        #os.mkdir(FLAGS._confusion_dir)
         os.makedirs(FLAGS._confusion_dir)
     
     if not os.path.exists(FLAGS._logit_txt):
@@ -560,57 +559,21 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
     with instNetList[0].session.graph.as_default():
         sess = instNetList[0].session
         
-#        text_file = open("FineTune.txt", "a")
-#        for b in range(instNet.num_hidden_layers + 1):
-#            if sess.run(tf.is_variable_initialized(instNet._b(b+1))):
-#                #print("%s with value in [pretrain %s]\n %s" % (ae._b(b+1).name, n, ae._b(b+1).eval(sess)))
-#                text_file.write("%s with value before fine-tuning\n %s\n" % (instNet._b(b+1).name, instNet._b(b+1).eval(sess)))
-#        text_file.write("\n\n")
-#        with tf.Session() as sess1:
-#            saver = tf.train.Saver(tf.global_variables())
-#            model_ckpt = '{0}/{1}/model_unsp.ckpt'.format(_chkpt_dir,fold+1)
-#            save_path = saver.save(sess1, model_ckpt)
-#            print("Model saved in file: %s" % save_path)       
-#        
-#        new = True
-#
-#        if not os.path.exists('{0}/{1}'.format(_chkpt_dir,fold+1)):
-#            os.mkdir('{0}/{1}'.format(_chkpt_dir,fold+1))        
-#            
-#        model_ckpt = '{0}/{1}/model_sp.ckpt'.format(_chkpt_dir,fold+1)
-#    
-#        if os.path.isfile(model_ckpt+'.meta'):
-#            input_var = None
-#            while input_var not in ['yes', 'no']:
-#                input_var = input(">>> We found model.ckpt file. Do you want to load it [yes/no]?")
-#            if input_var == 'yes':
-#                new = False
         bagOuts = []
         instOuts = []
         maxInstOuts = []
-#        totalNumInst = np.sum(num_inst)
         instIdx = np.insert(np.cumsum(num_inst),0,0)
-#        input_pl = tf.placeholder(tf.float32, shape=(totalNumInst,None,
-#                                                instNetList[0].shape[0]),name='input_pl')
         keep_prob_ = tf.placeholder(dtype=tf.float32,
                                            name='dropout_ratio')
 
         offset = tf.constant(instIdx)
-#        hist_summaries = []
         for k in range(len(instNetList)):
             with tf.name_scope('C5{0}'.format(dataset.k[k])):            
-                #out_Y, out_y, out_maxInst = instNetList[k].MIL(input_pl[instIdx[k]:instIdx[k+1]],keep_prob_)
                 out_Y, out_y, out_maxInst = instNetList[k].MIL(tf.transpose(inputs[k],perm=(1,0,2)),keep_prob_)
-            #bagOuts.append(tf.transpose(out_Y,perm=[1,0]))
             bagOuts.append(out_Y)
             instOuts.append(out_y)
-            #maxInstOuts.append(out_maxInst)
             maxInstOuts.append(out_maxInst+offset[k])
             
-#            hist_summaries.extend([instNetList[k]['biases{0}'.format(i + 1)]
-#                              for i in range(instNetList[k].num_hidden_layers + 1)])
-#            hist_summaries.extend([instNetList[k]['weights{0}'.format(i + 1)]
-#                                   for i in range(instNetList[k].num_hidden_layers + 1)])
 
         hist_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         hist_summaries = [tf.summary.histogram(v.op.name + "_fine_tuning", v)for v in hist_variables if not ('decoder' in v.name)]    
@@ -623,55 +586,28 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         
         y_maxInsts = tf.concat(maxInstOuts,1, name='maxInsts')
         
-#        # regularization (instance intra-similarity)
-#        tactic_pred = tf.one_hot(tf.argmax(tf.nn.softmax(Y),axis=1),len(FLAGS.tacticName))
-#        pred_related_inst_idx = tf.multiply(tf.cast(y_maxInsts,tf.float32), tactic_pred)
-#        #pred_relate_inst_idx = tf.one_hot(tf.cast(pred_related_inst_idx,tf.int32),totalNumInst)    
-#        #pred_relate_inst_idx = tf.reduce_max(pred_related_inst_idx,axis=1)
-#        pred_relate_inst_idx =  tf.one_hot(tf.cast(tf.reduce_max(pred_related_inst_idx,axis=1),tf.int32),totalNumInst) 
-#        input_pl = tf.expand_dims(tf.concat(inputs,0),axis=0)
-##        mask_feature = tf.boolean_mask(input_pl,tf.cast(pred_relate_inst_idx,tf.bool))
-##        #tf.ones([1,instNetList[0].shape[0]])
-##        matrix = []
-##        for d in range(instNetList[0].shape[0]):
-##            matrix.append(tactic_pred)
-##            
-##        XX = []
-##        mmatrix = tf.transpose(tf.stack(matrix,axis=2),perm=[1,0,2])
-##        
-###        expand_mask_feature = tf.zeros([len(FLAGS.tacticName),None,instNetList[0].shape[0]])
-##        for t in range(len(FLAGS.tacticName)):
-##            XX.append(tf.multiply(mmatrix[t],mask_feature))
-###            for d in range(instNetList[0].shape[0]):
-###                expand_mask_feature[t,:,d] = tf.multiply(tactic_pred[:,t],mask_feature[:,d])
-##        expand_mask_feature = tf.stack(XX,axis=0)
-##        numEachTactic = tf.reduce_sum(tactic_pred,axis=0)
-##        dist = tf.norm(expand_mask_feature,axis=2)
-##        mean, variance = tf.nn.moments(dist,[1])
-##        variance = tf.divide(variance,numEachTactic)
-##        variance = tf.where(tf.is_nan(variance),tf.zeros_like(variance),variance)
-#        saver = tf.train.Saver()
-#        if new:
-        print("")
-        print('fold %d' %(fold+1))
-        datadir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/train/fold%d' %(fold+1)
-        file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_training%d.mat' %(fold+1)
-
-        _, batch_multi_Y, batch_multi_KPlabel = readmat.multi_class_read(datadir,file_str,num_inst,dataset)
-        num_train = len(batch_multi_Y)
-        strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
-        print(strBagShape)
-        batch_multi_X = dataset.dataTraj[dataset.trainIdx,:]
-
-        testdir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/test/fold%d' %(fold+1)
-        test_file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_test%d.mat' %(fold+1) 
-        _, test_multi_Y, test_multi_label = readmat.multi_class_read(testdir,test_file_str,num_inst,dataset)       
-        strBagShape = "the shape of bags is ({0},{1})".format(test_multi_Y.shape[0],test_multi_Y.shape[1])
-        print(strBagShape)
-        test_multi_X = dataset.dataTraj[dataset.testIdx,:]
-      
-        if FLAGS.finetune_batch_size is None:
-            FLAGS.finetune_batch_size = len(test_multi_Y)
+# =============================================================================
+#         print("")
+#         print('fold %d' %(fold+1))
+#         datadir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/train/fold%d' %(fold+1)
+#         file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_training%d.mat' %(fold+1)
+# 
+#         _, batch_multi_Y, batch_multi_KPlabel = readmat.multi_class_read(datadir,file_str,num_inst,dataset)
+#         num_train = len(batch_multi_Y)
+#         strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
+#         print(strBagShape)
+#         batch_multi_X = dataset.dataTraj[dataset.trainIdx,:]
+# 
+#         testdir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/test/fold%d' %(fold+1)
+#         test_file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_test%d.mat' %(fold+1) 
+#         _, test_multi_Y, test_multi_label = readmat.multi_class_read(testdir,test_file_str,num_inst,dataset)       
+#         strBagShape = "the shape of bags is ({0},{1})".format(test_multi_Y.shape[0],test_multi_Y.shape[1])
+#         print(strBagShape)
+#         test_multi_X = dataset.dataTraj[dataset.testIdx,:]
+#       
+#         if FLAGS.finetune_batch_size is None:
+#             FLAGS.finetune_batch_size = len(test_multi_Y)
+# =============================================================================
             
         NUM_CLASS = len(dataset.tacticName)
         Y_placeholder = tf.placeholder(tf.float32,
@@ -752,6 +688,29 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         #steps = FLAGS.finetuning_epochs * num_train
         trainIdx = dataset.trainIdx
         seqLenMatrix = dataset.seqLenMatrix
+        
+        print("")
+        print('fold %d' %(fold+1))
+        datadir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/train/fold%d' %(fold+1)
+        file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_training%d.mat' %(fold+1)
+
+        _, batch_multi_Y, batch_multi_KPlabel = readmat.multi_class_read(datadir,file_str,num_inst,dataset)
+        num_train = len(batch_multi_Y)
+        strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
+        print(strBagShape)
+        batch_multi_X = dataset.dataTraj[dataset.trainIdx,:]
+
+        testdir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/test/fold%d' %(fold+1)
+        test_file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_test%d.mat' %(fold+1) 
+        _, test_multi_Y, test_multi_label = readmat.multi_class_read(testdir,test_file_str,num_inst,dataset)       
+        strBagShape = "the shape of bags is ({0},{1})".format(test_multi_Y.shape[0],test_multi_Y.shape[1])
+        print(strBagShape)
+        test_multi_X = dataset.dataTraj[dataset.testIdx,:]
+      
+        if FLAGS.finetune_batch_size is None:
+            FLAGS.finetune_batch_size = len(test_multi_Y)
+        
+        
         count = 0
         for epochs in range(FLAGS.finetuning_epochs):
             perm = np.arange(num_train)
@@ -761,11 +720,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             text_file.write("|-------------|-----------|-------------|----------|\n")
             for step in range(int(num_train/FLAGS.finetune_batch_size)):
                 start_time = time.time()
-                
-               # player_perm = np.arange(numPlayer)
-                #np.random.shuffle(player_perm)          
+                    
                 selectIndex = perm[FLAGS.finetune_batch_size*step:FLAGS.finetune_batch_size*step+FLAGS.finetune_batch_size]
-                #input_feed = batch_multi_X[selectIndex,:]
                 random_sequences = np.reshape(batch_multi_X[selectIndex,:],(-1,batch_multi_X.shape[2],batch_multi_X.shape[3]))
                 batch_seqlen = np.reshape(seqLenMatrix[trainIdx[selectIndex],:],(-1))
                 target_feed = batch_multi_Y[selectIndex].astype(np.int32)         
@@ -794,9 +750,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                                                   })            
                 duration = time.time() - start_time
                 
-                #count = epochs*(num_train/FLAGS.batch_size)+step
                 # Write the summaries and print an overview fairly often.
-                #if step % 10 == 0:
                 count = count + 1
                 if step % 10 == 0:
                     # Print status to stdout.
@@ -821,37 +775,11 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                     summary_writer.add_summary(summary_str, count)
                     
                     np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
-                    #np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),logit,fmt='%.4f', delimiter=' ')
-#                # Update the events file.
-#                input_feed = np.transpose(batch_multi_X, (1,0,2))
-#                target_feed = batch_multi_Y.astype(np.int32) 
-#                train_loss_str = sess.run(train_loss,
-#                                          feed_dict={input_pl: input_feed,
-#                                                     Y_placeholder: target_feed,
-#                                                     keep_prob_: 1.0
-#                                                     })                                          
-#                summary_writer.add_summary(train_loss_str, epochs)                    
+                    #np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),logit,fmt='%.4f', delimiter=' ')               
                     
-# =============================================================================
-#             bagAccu_merge =[]
-#             Y_pred_merge = []
-#             inst_pred_merge=[]
-#             for v in range(len(test_multi_Y)):
-#                 random_sequences =  np.stack(test_multi_X[v,:],axis=0)
-#                 batch_seqlen = random_sequences.shape[1]
-#                 test_target_feed = test_multi_Y.astype(np.int32)
-#                 bagAccu, Y_pred, inst_pred = sess.run([accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],
-#                                                        feed_dict={FLAGS.lstm.p_input:random_sequences,
-#                                                                   FLAGS.lstm.seqlen: batch_seqlen,
-#                                                                   Y_placeholder: test_target_feed,
-#                                                                   keep_prob_: 1.0
-#                                                                   })
-#                 bagAccu_merge.append(bagAccu)
-#                 Y_pred_merge.append(Y_pred)
-#                 inst_pred_merge.append(inst_pred)
-# =============================================================================
 
 
+            # test data result
             testIdx = dataset.testIdx
             random_sequences = np.reshape(test_multi_X,(-1,test_multi_X.shape[2],test_multi_X.shape[3]))
             batch_seqlen = np.reshape(seqLenMatrix[testIdx,:],(-1))
@@ -960,18 +888,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
         time.sleep(0.5)
         
-# =============================================================================
-#         train_labels_str = GenerateSummaryStr('train_tactic_labels',tf.summary.image,
-#                                         Y_labels_image,batch_multi_X,batch_multi_Y,sess,input_pl,Y_placeholder,keep_prob_)
-#                              
-#         summary_writer.add_summary(train_labels_str)
-#         test_labels_str = GenerateSummaryStr('test_tactic_labels',tf.summary.image,
-#                                 Y_labels_image,test_multi_X,test_multi_Y,sess,input_pl,Y_placeholder,keep_prob_)
-#                      
-#         summary_writer.add_summary(test_labels_str)                  
-# =============================================================================
         
-        
+        # generate confunsion matrix
         filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test_final.csv'.format(fold,epochs)
         ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)        
  
