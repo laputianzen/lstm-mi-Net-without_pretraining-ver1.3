@@ -192,7 +192,7 @@ class miNet(object):
 #                acfun = tf.sigmoid
 #            else:
 #                acfun = tf.nn.relu
-            acfun = tf.sigmoid
+            acfun = self.acfunList[i]
             w = self._w(i + 1, "_fixed")
             b = self._b(i + 1, "_fixed")
             
@@ -555,7 +555,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         with tf.name_scope('softmax_cross_entory_with_logit'):
             x_entropy = metric.loss_x_entropy(tf.nn.softmax(Y), Y_placeholder)
             tactic_prediction_op = tf.summary.histogram('tactic prediction',tf.nn.softmax(Y))
-            tactic_score_op = tf.summary.histogram('tactic prediction',Y)
+            tactic_score_op = tf.summary.histogram('tactic_prediction',Y)
 # =============================================================================
 #             loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=Y,
 #                                 labels=tf.argmax(Y_placeholder,axis=1),name='softmax_cross_entropy'))
