@@ -96,12 +96,20 @@ class miNet(object):
                 w_shape = (self.__shape[i], self.__shape[i + 1])
                 #a = tf.multiply(4.0, tf.sqrt(6.0 / (w_shape[0] + w_shape[1])))
                 #w_init = tf.random_uniform(w_shape, -1 * a, a)
-                w_init = tf.truncated_normal(w_shape)
+# =============================================================================
+#                 w_init = tf.truncated_normal(w_shape)
+                w_init = utils.xavier_initializer(w_shape)
+# =============================================================================
+                
                 self[name_w] = tf.Variable(w_init, name=name_w, trainable=True)
                 # Train biases
                 name_b = self._biases_str.format(i + 1)
                 b_shape = (self.__shape[i + 1],)
-                b_init = tf.zeros(b_shape) + 0.01
+# =============================================================================
+#                 b_init = tf.zeros(b_shape) + 0.01
+                b_init = utils.xavier_initializer(b_shape,uniform=True)
+# =============================================================================
+                
                 self[name_b] = tf.Variable(b_init, trainable=True, name=name_b)
 
                 if i < self.__num_hidden_layers:
@@ -116,9 +124,13 @@ class miNet(object):
                     # Pretraining output training biases
                     name_b_out = self._biases_str.format(i + 1) + "_out"
                     b_shape = (self.__shape[i],)
-                    b_init = tf.zeros(b_shape) + 0.01
+# =============================================================================
+#                     b_init = tf.zeros(b_shape) + 0.01
+                    b_init = utils.xavier_initializer(b_shape,uniform=True)
+# =============================================================================
                     self[name_b_out] = tf.Variable(b_init, trainable=True, name=name_b_out)
                     
+                
     def _w(self, n, suffix=""):
         return self[self._weights_str.format(n) + suffix]
     

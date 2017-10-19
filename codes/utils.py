@@ -48,6 +48,23 @@ def clear_all():
         if 'module' in str(globals()[var]): continue
 
         del globals()[var]
+        
+def xavier_initializer(shape, uniform=False):
+    if shape:
+        fan_in = float(shape[-2]) if len(shape) > 1 else float(shape[-1])
+        fan_out = float(shape[-1])
+    else:
+        fan_in = 1.0
+        fan_out = 1.0
+        
+    n = (fan_in + fan_out) / 2.0                
+    if uniform:
+        limit = tf.sqrt(3.0 / n)
+        return tf.random_uniform(shape, -limit, limit) 
+    else:
+        # To get stddev = math.sqrt(factor / n) need to adjust for truncated.
+        trunc_stddev = tf.sqrt(1.3 / n)
+        return tf.truncated_normal(shape, 0.0, trunc_stddev)            
 
 if __name__ == "__main__":
     clear_all()
