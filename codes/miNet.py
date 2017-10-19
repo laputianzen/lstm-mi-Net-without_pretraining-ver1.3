@@ -532,30 +532,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         Y = tf.concat(bagOuts,1,name='output')
         
         y_maxInsts = tf.concat(maxInstOuts,1, name='maxInsts')
-        
-# =============================================================================
-#         print("")
-#         print('fold %d' %(fold+1))
-#         datadir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/train/fold%d' %(fold+1)
-#         file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_training%d.mat' %(fold+1)
-# 
-#         _, batch_multi_Y, batch_multi_KPlabel = readmat.multi_class_read(datadir,file_str,num_inst,dataset)
-#         num_train = len(batch_multi_Y)
-#         strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
-#         print(strBagShape)
-#         batch_multi_X = dataset.dataTraj[dataset.trainIdx,:]
-# 
-#         testdir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/test/fold%d' %(fold+1)
-#         test_file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_test%d.mat' %(fold+1) 
-#         _, test_multi_Y, test_multi_label = readmat.multi_class_read(testdir,test_file_str,num_inst,dataset)       
-#         strBagShape = "the shape of bags is ({0},{1})".format(test_multi_Y.shape[0],test_multi_Y.shape[1])
-#         print(strBagShape)
-#         test_multi_X = dataset.dataTraj[dataset.testIdx,:]
-#       
-#         if FLAGS.finetune_batch_size is None:
-#             FLAGS.finetune_batch_size = len(test_multi_Y)
-# =============================================================================
-            
+                    
         NUM_CLASS = len(dataset.tacticName)
         Y_placeholder = tf.placeholder(tf.float32,
                                         shape=(None,NUM_CLASS),
@@ -635,7 +612,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         #steps = FLAGS.finetuning_epochs * num_train
         trainIdx = dataset.trainIdx
         seqLenMatrix = dataset.seqLenMatrix
-        
+
+        ''' generate batch data for training '''        
         print("")
         print('fold %d' %(fold+1))
         datadir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/train/fold%d' %(fold+1)
