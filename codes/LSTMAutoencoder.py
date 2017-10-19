@@ -12,6 +12,7 @@ import matplotlib.image as mpimg
 from mpl_toolkits.mplot3d import Axes3D
 import pickle as pl
 
+import utils
 
 """
 Future : Modularization
@@ -74,8 +75,13 @@ class LSTMAutoencoder(object):
         
     with tf.variable_scope('decoder') as vs:
       dec_weight_ = tf.Variable(
-        tf.truncated_normal([hidden_num, self.elem_num], dtype=tf.float32),
-        name="dec_weight")
+            utils.xavier_initializer([hidden_num, self.elem_num],uniform=False),
+            name="dec_weight")        
+# =============================================================================
+#       dec_weight_ = tf.Variable(
+#         tf.truncated_normal([hidden_num, self.elem_num], dtype=tf.float32),
+#         name="dec_weight")
+# =============================================================================
 #      dec_bias_ = tf.Variable(
 #        tf.constant(0.1, shape=[self.elem_num], dtype=tf.float32),
 #        name="dec_bias")
