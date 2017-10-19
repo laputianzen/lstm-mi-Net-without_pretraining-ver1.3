@@ -14,7 +14,7 @@ from os.path import join as pjoin
 
 import numpy as np
 import tensorflow as tf
-import pandas as pd 
+
 
 
 import readmat
@@ -23,6 +23,7 @@ from fixed_flags_miNet import FLAGS
 import net_param
 import dataset
 import utils
+import metric
 
 class miNet(object):
     
@@ -317,26 +318,6 @@ def training(loss, learning_rate, loss_key=None, optimMethod=tf.train.AdamOptimi
       train_op = optimizer.minimize(loss, global_step=global_step)
   return train_op, global_step
 
-def loss_x_entropy(output, target):
-    """Cross entropy loss
-    
-    See https://en.wikipedia.org/wiki/Cross_entropy
-
-    Args:
-        output: tensor of net output
-        target: tensor of net we are trying to reconstruct
-    Returns:
-        Scalar tensor of cross entropy
-        """
-    with tf.name_scope("xentropy_loss"):
-        net_output_tf = tf.convert_to_tensor(output, name='input')
-        target_tf = tf.convert_to_tensor(target, name='target')
-        cross_entropy = tf.add(tf.multiply(tf.log(net_output_tf, name='log_output'),
-                                           target_tf),
-                             tf.multiply(tf.log(1 - net_output_tf),
-                                    (1 - target_tf)))
-        return -1 * tf.reduce_mean(tf.reduce_sum(cross_entropy, 1),
-                                   name='xentropy_mean')
 
 
 def main_unsupervised(ae_shape,acfunList,dataset,FLAGS,sess=None):
@@ -506,43 +487,9 @@ def main_unsupervised(ae_shape,acfunList,dataset,FLAGS,sess=None):
                                       
     return aeList
 
-def multiClassEvaluation(logits, labels):
-    """Evaluate the quality of the logits at predicting the label.
-    
-    Args:
-        logits: Logits tensor, float - [batch_size, NUM_CLASSES].
-        labels: Labels tensor, int32 - [batch_size], with values in the
-            range [0, NUM_CLASSES).
 
-    Returns:
-        A scalar int32 tensor with the number of examples (out of batch_size)
-        that were predicted correctly.
-        """    
-    correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(labels,1))
-    accu  = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    error = tf.subtract(1.0,accu)
-    return accu, error
 
-def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
-          
-    
-    KP_pred = np.zeros((len(Y_pred),5))
-    for bagIdx in range(len(Y_pred)):
-        for k in range(len(dataset.k)):
-            if Y_pred[bagIdx] in dataset.C5k_CLASS[k]:
-                c = dataset.C5k_CLASS[k].index(Y_pred[bagIdx])
-                kinst = np.argmax(inst_pred[k][bagIdx,:,c])
-                KP_pred[bagIdx] = dataset.playerMap[k][kinst]
-                
-    Y_correct = np.equal(Y_pred,np.argmax(test_Y,1))
-    bagAccu = np.sum(Y_correct) / Y_pred.size
-    
-    y_correct = np.equal(KP_pred[Y_correct,:],test_label[Y_correct,:])
-    
-    pAccu = np.sum(y_correct) / KP_pred[Y_correct,:].size
-    print('bag accuracy %.5f, inst accuracy %.5f' %(bagAccu, pAccu))
-    time.sleep(1)
-    return bagAccu, pAccu
+
 
 #text_file = open("final_result.txt", "w")
 
@@ -633,7 +580,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         #loss = loss_supervised(logits, labels_placeholder)
         
         with tf.name_scope('MultiClassEvaluation'):
-            accu, error = multiClassEvaluation(Y, Y_placeholder)
+            accu, error = metric.multiClassEvaluation(Y, Y_placeholder)
         #train_op, global_step = training(error, FLAGS.supervised_learning_rate, None, optimMethod=FLAGS.optim_method)
 #        with tf.name_scope('correctness'):
 #            correct =tf.equal(tf.argmax(Y,1),tf.argmax(Y_placeholder,1))
@@ -718,10 +665,14 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             #numPlayer = len(batch_multi_KPlabel[0])
             print("|-------------|-----------|-------------|----------|")
             text_file.write("|-------------|-----------|-------------|----------|\n")
+            
+            ''' training of one epoch '''
             for step in range(int(num_train/FLAGS.finetune_batch_size)):
                 start_time = time.time()
                     
                 selectIndex = perm[FLAGS.finetune_batch_size*step:FLAGS.finetune_batch_size*step+FLAGS.finetune_batch_size]
+                
+                ''' get train data and feed into graph in training stage '''
                 random_sequences = np.reshape(batch_multi_X[selectIndex,:],(-1,batch_multi_X.shape[2],batch_multi_X.shape[3]))
                 batch_seqlen = np.reshape(seqLenMatrix[trainIdx[selectIndex],:],(-1))
                 target_feed = batch_multi_Y[selectIndex].astype(np.int32)         
@@ -733,7 +684,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                                 Y_placeholder: target_feed,
                                                 keep_prob_: FLAGS.keep_prob
                                         })
-    
+                ''' more details for debugging '''
 #                los, m, var, mf, xpmf, maxInst, ta_pred,num_ta, related_inst_idx, relate_inst_idx = sess.run([loss_xs, mean, variance, mask_feature, expand_mask_feature, y_maxInsts, tactic_pred, numEachTactic, pred_related_inst_idx, pred_relate_inst_idx],
 #                                                          feed_dict={
 #                                                                  FLAGS.lstm.p_input:random_sequences,
@@ -741,7 +692,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #                                                                  Y_placeholder: target_feed,
 #                                                                  keep_prob_: FLAGS.keep_prob
 #                                                })
-
+                ''' model outputs for tensorboarad image summaries and debugging '''
                 Y_scaled, Y_unscaled = sess.run([tf.nn.softmax(Y),Y],
                                                        feed_dict={FLAGS.p_input:random_sequences,
                                                                   FLAGS.seqlen: batch_seqlen,
@@ -752,6 +703,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 
                 # Write the summaries and print an overview fairly often.
                 count = count + 1
+                ''' save test result after n training steps '''
                 if step % 10 == 0:
                     # Print status to stdout.
                     #print('Step %d: loss = %.2f (%.3f sec)' % (count, loss_value, duration))
@@ -779,6 +731,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                     
 
 
+            ''' evaluate test performance after one epoch (need add training performance)'''
             # test data result
             testIdx = dataset.testIdx
             random_sequences = np.reshape(test_multi_X,(-1,test_multi_X.shape[2],test_multi_X.shape[3]))
@@ -794,34 +747,13 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             print('Epochs %d: accuracy = %.5f '  % (epochs+1, bagAccu)) 
             text_file.write('Epochs %d: accuracy = %.5f\n\n'  % (epochs+1, bagAccu))
             
-#            result = sess.run(merged,feed_dict={input_pl: test_input_feed,
-#                                                Y_placeholder: test_target_feed,
-#                                                keep_prob_: 1.0
-#                                                })
-            #i = epochs * num_train/FLAGS.finetune_batch_size +step
-#            summary_writer.add_summary(result,epochs)
-            #baseline = 1-len(test_Y.nonzero())/len(test_Y)
-            #if bagAccu > baseline:
-             
-            # image logit
-# =============================================================================
-#             if (epochs+1) % 40 == 0:
-#                 train_logits_str = GenerateSummaryStr('train_tactic_logits{0}'.format(epochs+1),tf.summary.image,
-#                                         Y_logits_image,batch_multi_X,batch_multi_Y,sess,input_pl,Y_placeholder,keep_prob_)
-#                              
-#                 summary_writer.add_summary(train_logits_str)
-#                 test_logits_str = GenerateSummaryStr('test_tactic_logits{0}'.format(epochs+1),tf.summary.image,
-#                                         Y_logits_image,test_multi_X,test_multi_Y,sess,input_pl,Y_placeholder,keep_prob_)
-#                              
-#                 summary_writer.add_summary(test_logits_str)           
-# =============================================================================
             
             
             bagAccu,pAccu = calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('bag accuracy %.5f, inst accuracy %.5f\n' %(bagAccu, pAccu))
             
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,epochs)
-            ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)
+            metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)
             #print("")
 
                     #summary_str = sess.run(summary_op, feed_dict=feed_dict)
@@ -849,7 +781,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #            saver.restore(sess, model_ckpt)                    
         
 
-           
+        ''' evaluate test performance after fininshing training (need add training performance)'''   
         testIdx = dataset.testIdx
         random_sequences = np.reshape(test_multi_X,(-1,test_multi_X.shape[2],test_multi_X.shape[3]))
         batch_seqlen = np.reshape(seqLenMatrix[testIdx,:],(-1))
@@ -867,6 +799,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                                           keep_prob_: 1.0
                                                           })
 
+        ''' calculate instance accuracy (not used afterward)'''
         inst_pred_matrix = np.empty([test_target_feed.shape[0],max(num_inst),test_target_feed.shape[1]])
         inst_pred_matrix.fill(np.nan)
         for test_id in range(test_target_feed.shape[0]):
@@ -885,24 +818,19 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             
         
         print('\nAfter %d Epochs: accuracy = %.5f'  % (epochs+1, bagAccu))
-        calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
+        metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
         time.sleep(0.5)
         
         
         # generate confunsion matrix
         filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test_final.csv'.format(fold,epochs)
-        ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)        
+        metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)        
  
         summary_writer.close()           
 
-def label2image(label_vec):
-    try: 
-        if len(label_vec.shape) == 2:
-            labelImage = tf.expand_dims(tf.expand_dims(label_vec,axis = 2),axis=0)
-            labelImage = tf.transpose(labelImage,perm=[0,2,1,3])
-            return labelImage
-    except:
-        print('label dim must be 2!')
+
+def step():
+    ''' unified sess.run op '''
 
 def GenerateSummaryStr(tag,summary_op,tf_op,input_data,label_data,sess,input_pl,target_pl,keep_prob):
     input_feed = np.transpose(input_data, (1,0,2))
@@ -914,27 +842,14 @@ def GenerateSummaryStr(tag,summary_op,tf_op,input_data,label_data,sess,input_pl,
                                                })
     return summary_str
 
-def ConfusionMatrix(logits,labels,dataset,filename):
-    C = np.zeros((len(dataset.tacticName),len(dataset.tacticName)))
-    CM = C    
-    flattenC5k = [val for sublist in dataset.C5k_CLASS for val in sublist]
-    for bagIdx in range(len(labels)):
-        gt = np.argmax(labels[bagIdx])
-        #pred = np.argmax(logits[bagIdx])
-        pred = logits[bagIdx]
-        new_gt = flattenC5k[gt]
-        new_pred= flattenC5k[pred]
-        C[new_gt,new_pred] = C[new_gt,new_pred] + 1
-        
-    print(C)
-    cumC = np.sum(C,axis=1)
-    
-    for p in range(len(C)):
-        CM[p,:] = np.divide(C[p,:],cumC[p])
-    
-    df = pd.DataFrame(CM)
-    df.round(3)
-    df.to_csv(filename)
+def label2image(label_vec):
+    try: 
+        if len(label_vec.shape) == 2:
+            labelImage = tf.expand_dims(tf.expand_dims(label_vec,axis = 2),axis=0)
+            labelImage = tf.transpose(labelImage,perm=[0,2,1,3])
+            return labelImage
+    except:
+        print('label dim must be 2!')
     
 if __name__ == '__main__':
     tf.reset_default_graph()
