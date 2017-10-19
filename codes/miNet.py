@@ -611,6 +611,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         train_loss  = tf.summary.scalar('train_loss',loss)
         #steps = FLAGS.finetuning_epochs * num_train
         trainIdx = dataset.trainIdx
+        testIdx = dataset.testIdx
         seqLenMatrix = dataset.seqLenMatrix
 
         ''' generate batch data for training '''        
@@ -624,18 +625,37 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
         print(strBagShape)
         batch_multi_X = dataset.dataTraj[dataset.trainIdx,:]
+        train_data = {'sequences':batch_multi_X,'seqlen':seqLenMatrix[trainIdx,:],'label':batch_multi_Y}
 
         testdir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/test/fold%d' %(fold+1)
         test_file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_test%d.mat' %(fold+1) 
         _, test_multi_Y, test_multi_label = readmat.multi_class_read(testdir,test_file_str,num_inst,dataset)       
+        num_test = len(test_multi_Y)
         strBagShape = "the shape of bags is ({0},{1})".format(test_multi_Y.shape[0],test_multi_Y.shape[1])
         print(strBagShape)
-        test_multi_X = dataset.dataTraj[dataset.testIdx,:]
+        test_multi_X = dataset.dataTraj[testIdx,:]
+        test_data = {'sequences':test_multi_X,'seqlen':seqLenMatrix[testIdx,:],'label':test_multi_Y}
       
         if FLAGS.finetune_batch_size is None:
             FLAGS.finetune_batch_size = len(test_multi_Y)
         
-        
+
+        def fetch_data(data,selectIndex,dropout):
+            random_sequences = np.reshape(data['sequences'][selectIndex,:],(-1,data['sequences'].shape[2],data['sequences'].shape[3]))
+            batch_seqlen = np.reshape(data['seqlen'][selectIndex,:],(-1))
+            target_feed = data['label'][selectIndex].astype(np.int32)            
+            
+            if dropout:
+                keep_prob = FLAGS.keep_prob
+            else:
+                keep_prob = 1.0
+                
+            feed_dict={FLAGS.p_input:random_sequences,
+                       FLAGS.seqlen: batch_seqlen,
+                       Y_placeholder: target_feed,
+                       keep_prob_: keep_prob}
+            return feed_dict
+            
         count = 0
         for epochs in range(FLAGS.finetuning_epochs):
             perm = np.arange(num_train)
@@ -651,17 +671,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 selectIndex = perm[FLAGS.finetune_batch_size*step:FLAGS.finetune_batch_size*step+FLAGS.finetune_batch_size]
                 
                 ''' get train data and feed into graph in training stage '''
-                random_sequences = np.reshape(batch_multi_X[selectIndex,:],(-1,batch_multi_X.shape[2],batch_multi_X.shape[3]))
-                batch_seqlen = np.reshape(seqLenMatrix[trainIdx[selectIndex],:],(-1))
-                target_feed = batch_multi_Y[selectIndex].astype(np.int32)         
-            
-                _, loss_value, logit, label= sess.run([train_op, loss, Y, Y_placeholder],
-                                        feed_dict={ 
-                                                FLAGS.p_input:random_sequences,
-                                                FLAGS.seqlen: batch_seqlen,
-                                                Y_placeholder: target_feed,
-                                                keep_prob_: FLAGS.keep_prob
-                                        })
+
+                feed_dict = fetch_data(train_data,selectIndex,True)
+                _, loss_value, logit, label = run_step(sess,[train_op, loss, Y, Y_placeholder],feed_dict)
                 ''' more details for debugging '''
 #                los, m, var, mf, xpmf, maxInst, ta_pred,num_ta, related_inst_idx, relate_inst_idx = sess.run([loss_xs, mean, variance, mask_feature, expand_mask_feature, y_maxInsts, tactic_pred, numEachTactic, pred_related_inst_idx, pred_relate_inst_idx],
 #                                                          feed_dict={
@@ -671,37 +683,23 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #                                                                  keep_prob_: FLAGS.keep_prob
 #                                                })
                 ''' model outputs for tensorboarad image summaries and debugging '''
-                Y_scaled, Y_unscaled = sess.run([tf.nn.softmax(Y),Y],
-                                                       feed_dict={FLAGS.p_input:random_sequences,
-                                                                  FLAGS.seqlen: batch_seqlen,
-                                                                  Y_placeholder: target_feed,
-                                                                  keep_prob_: 1.0
-                                                                  })            
+                feed_dict = fetch_data(train_data,selectIndex,False)
+                Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)      
                 duration = time.time() - start_time
                 
                 # Write the summaries and print an overview fairly often.
                 count = count + 1
-                ''' save test result after n training steps '''
+                ''' save training data result after n training steps '''
                 if step % 10 == 0:
                     # Print status to stdout.
                     #print('Step %d: loss = %.2f (%.3f sec)' % (count, loss_value, duration))
                     print('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)' % (epochs+1, step, loss_value, duration))
                     text_file.write('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)\n' % (epochs+1, step, loss_value, duration))
-                    summary_str = sess.run(merged,
-                                            feed_dict={ 
-                                                    FLAGS.p_input:random_sequences,
-                                                    FLAGS.seqlen: batch_seqlen,
-                                                    Y_placeholder: target_feed,
-                                                    keep_prob_: FLAGS.keep_prob
-                                            })
+                    feed_dict = fetch_data(train_data,selectIndex,True)
+                    summary_str = run_step(sess,merged,feed_dict)
                     summary_writer.add_summary(summary_str, count)
-                    summary_str = sess.run(optimize_loss_op,
-                                           feed_dict={ 
-                                                   FLAGS.p_input:random_sequences,
-                                                   FLAGS.seqlen: batch_seqlen,
-                                                   Y_placeholder: target_feed,
-                                                   keep_prob_: FLAGS.keep_prob
-                                                   })                   
+                    
+                    summary_str = run_step(sess,optimize_loss_op,feed_dict)               
                     summary_writer.add_summary(summary_str, count)
                     
                     np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
@@ -711,16 +709,21 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
             ''' evaluate test performance after one epoch (need add training performance)'''
             # test data result
-            testIdx = dataset.testIdx
-            random_sequences = np.reshape(test_multi_X,(-1,test_multi_X.shape[2],test_multi_X.shape[3]))
-            batch_seqlen = np.reshape(seqLenMatrix[testIdx,:],(-1))
-            test_target_feed = test_multi_Y.astype(np.int32) 
-            loss_value,bagAccu, Y_pred, inst_pred = sess.run([loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],
-                                                   feed_dict={FLAGS.p_input:random_sequences,
-                                                              FLAGS.seqlen: batch_seqlen,
-                                                              Y_placeholder: test_target_feed,
-                                                              keep_prob_: 1.0
-                                                              })
+            selectIndex = np.arange(num_test)
+            feed_dict = fetch_data(test_data,selectIndex,False)
+            loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
+# =============================================================================
+#             testIdx = dataset.testIdx
+#             random_sequences = np.reshape(test_multi_X,(-1,test_multi_X.shape[2],test_multi_X.shape[3]))
+#             batch_seqlen = np.reshape(seqLenMatrix[testIdx,:],(-1))
+#             test_target_feed = test_multi_Y.astype(np.int32) 
+#             loss_value,bagAccu, Y_pred, inst_pred = sess.run([loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],
+#                                                    feed_dict={FLAGS.p_input:random_sequences,
+#                                                               FLAGS.seqlen: batch_seqlen,
+#                                                               Y_placeholder: test_target_feed,
+#                                                               keep_prob_: 1.0
+#                                                               })
+# =============================================================================
             print('Epochs %d: test loss = %.5f '  % (epochs+1, loss_value)) 
             print('Epochs %d: accuracy = %.5f '  % (epochs+1, bagAccu)) 
             text_file.write('Epochs %d: accuracy = %.5f\n\n'  % (epochs+1, bagAccu))
@@ -760,24 +763,14 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         
 
         ''' evaluate test performance after fininshing training (need add training performance)'''   
-        testIdx = dataset.testIdx
-        random_sequences = np.reshape(test_multi_X,(-1,test_multi_X.shape[2],test_multi_X.shape[3]))
-        batch_seqlen = np.reshape(seqLenMatrix[testIdx,:],(-1))
-        target_feed = test_multi_Y.astype(np.int32) 
-        bagAccu, Y_pred, inst_pred = sess.run([accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],
-                                               feed_dict={FLAGS.p_input:random_sequences,
-                                                          FLAGS.seqlen: batch_seqlen,
-                                                          Y_placeholder: test_target_feed,
-                                                          keep_prob_: 1.0
-                                                          })
-        Y_scaled, Y_unscaled = sess.run([tf.nn.softmax(Y),Y],
-                                               feed_dict={FLAGS.p_input:random_sequences,
-                                                          FLAGS.seqlen: batch_seqlen,
-                                                          Y_placeholder: test_target_feed,
-                                                          keep_prob_: 1.0
-                                                          })
+        selectIndex = np.arange(num_test)
+        feed_dict = fetch_data(test_data,selectIndex,False)
+        bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
+
+        Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
 
         ''' calculate instance accuracy (not used afterward)'''
+        test_target_feed = test_data['label']
         inst_pred_matrix = np.empty([test_target_feed.shape[0],max(num_inst),test_target_feed.shape[1]])
         inst_pred_matrix.fill(np.nan)
         for test_id in range(test_target_feed.shape[0]):
@@ -807,9 +800,13 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         summary_writer.close()           
 
 
-def step():
-    ''' unified sess.run op '''
+    
 
+def run_step(sess, op_list, feed_dict):
+    ''' unified sess.run op '''   
+    sess_result_list = sess.run(op_list,feed_dict=feed_dict)
+    return sess_result_list
+    
 def GenerateSummaryStr(tag,summary_op,tf_op,input_data,label_data,sess,input_pl,target_pl,keep_prob):
     input_feed = np.transpose(input_data, (1,0,2))
     target_feed = label_data.astype(np.int32)
