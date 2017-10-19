@@ -539,7 +539,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                         name='target_pl')
         #loss = loss_x_entropy(tf.nn.softmax(Y), tf.cast(Y_placeholder, tf.float32))
         with tf.name_scope('softmax_cross_entory_with_logit'):
-            loss = loss_x_entropy(tf.nn.softmax(Y), Y_placeholder)
+            loss = metric.loss_x_entropy(tf.nn.softmax(Y), Y_placeholder)
 # =============================================================================
 #             loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=Y,
 #                                 labels=tf.argmax(Y_placeholder,axis=1),name='softmax_cross_entropy'))
@@ -727,7 +727,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             
             
             
-            bagAccu,pAccu = calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
+            bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('bag accuracy %.5f, inst accuracy %.5f\n' %(bagAccu, pAccu))
             
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,epochs)
