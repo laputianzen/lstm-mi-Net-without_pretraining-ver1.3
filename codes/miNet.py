@@ -531,7 +531,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         #Y = tf.dynamic_stitch(FLAGS.C5k_CLASS,bagOuts)
         Y = tf.concat(bagOuts,1,name='output')
         
-        y_maxInsts = tf.concat(maxInstOuts,1, name='maxInsts')
+# =============================================================================
+#         y_maxInsts = tf.concat(maxInstOuts,1, name='maxInsts')
+# =============================================================================
                     
         NUM_CLASS = len(dataset.tacticName)
         Y_placeholder = tf.placeholder(tf.float32,
@@ -539,21 +541,30 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                         name='target_pl')
         #loss = loss_x_entropy(tf.nn.softmax(Y), tf.cast(Y_placeholder, tf.float32))
         with tf.name_scope('softmax_cross_entory_with_logit'):
-            loss = metric.loss_x_entropy(tf.nn.softmax(Y), Y_placeholder)
+            x_entropy = metric.loss_x_entropy(tf.nn.softmax(Y), Y_placeholder)
+            tactic_prediction_op = tf.summary.histogram('tactic prediction',tf.nn.softmax(Y))
+            tactic_score_op = tf.summary.histogram('tactic prediction',Y)
 # =============================================================================
 #             loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=Y,
 #                                 labels=tf.argmax(Y_placeholder,axis=1),name='softmax_cross_entropy'))
 #         
 # =============================================================================
-#==============================================================================
-#         regularization = tf.get_collection('decode_loss')
-#         decode_beta = tf.cast(FLAGS.decode_beta,tf.float32)
-#         loss = loss + decode_beta * regularization
-#==============================================================================
+        lstm_last_output = tf.get_collection('aelstm_lastoutput')
+        lstm_last_output_op = tf.summary.histogram('aelstm_lastoutput',lstm_last_output)
+        num_train = len(dataset.trainIdx)
+        regularization = tf.get_collection('decode_loss')
+        decode_beta = tf.cast(FLAGS.decode_beta,tf.float32)
+        normalized_regularization = tf.sqrt(regularization*
+                                            tf.constant(FLAGS.finetune_batch_size,dtype=tf.float32)/
+                                            tf.constant(num_train,dtype=tf.float32))*tf.constant(FLAGS.MAX_Y,dtype=tf.float32) 
+        loss = x_entropy + decode_beta * tf.squeeze(normalized_regularization,[0])
+
 #        loss_xs = loss
 #        beta = FLAGS.beta
 #        loss = loss + tf.reduce_sum(variance) * beta
-        loss_op = tf.summary.scalar('test_loss',loss)
+        x_entropy_op = tf.summary.scalar('x_entropy_loss',x_entropy)
+        aelstm_op = tf.summary.scalar('aelstm_loss',tf.squeeze(normalized_regularization,[0]))
+        loss_op = tf.summary.scalar('total_loss',loss)
         #loss = loss_supervised(logits, labels_placeholder)
         
         with tf.name_scope('MultiClassEvaluation'):
@@ -566,11 +577,18 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         error_op = tf.summary.scalar('test_error',error)
         accu_op = tf.summary.scalar('test_accuracy',accu)
 
-        Y_labels_image = label2image(Y_placeholder)
-        #label_op = tf.summary.image('tactic_labels',Y_label_image)
-        Y_logits_image = label2image(tf.nn.softmax(Y))
-        #label_op = tf.summary.histogram('tactic_labels',Y_placeholder)
-        merged = tf.summary.merge([loss_op,error_op,accu_op,summary_op])#,output_op,label_op])
+# =============================================================================
+#         Y_labels_image = label2image(Y_placeholder)
+#         #label_op = tf.summary.image('tactic_labels',Y_label_image)
+#         Y_logits_image = label2image(tf.nn.softmax(Y))
+#         #label_op = tf.summary.histogram('tactic_labels',Y_placeholder)
+# =============================================================================
+        merged = tf.summary.merge([lstm_last_output_op,
+                                   tactic_prediction_op,
+                                   tactic_score_op,
+                                   x_entropy_op,aelstm_op,
+                                   loss_op,error_op,
+                                   accu_op,summary_op])#,output_op,label_op])
         summary_writer = tf.summary.FileWriter(pjoin(FLAGS.miNet_pretrain_summary_dir,
                                                       'fine_tuning_iter{0}'.format(FLAGS.finetuning_epochs)),tf.get_default_graph())
                                                 #graph_def=sess.graph_def,
@@ -608,7 +626,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         sess.run(tf.variables_initializer(optim_vars))
         sess.run(tf.variables_initializer(learning_rate_var))
         sess.run(tf.variables_initializer(tf.trainable_variables()))
-        train_loss  = tf.summary.scalar('train_loss',loss)
+# =============================================================================
+#         train_loss  = tf.summary.scalar('train_loss',loss)
+# =============================================================================
         #steps = FLAGS.finetuning_epochs * num_train
         trainIdx = dataset.trainIdx
         testIdx = dataset.testIdx
@@ -712,18 +732,6 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             selectIndex = np.arange(num_test)
             feed_dict = fetch_data(test_data,selectIndex,False)
             loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
-# =============================================================================
-#             testIdx = dataset.testIdx
-#             random_sequences = np.reshape(test_multi_X,(-1,test_multi_X.shape[2],test_multi_X.shape[3]))
-#             batch_seqlen = np.reshape(seqLenMatrix[testIdx,:],(-1))
-#             test_target_feed = test_multi_Y.astype(np.int32) 
-#             loss_value,bagAccu, Y_pred, inst_pred = sess.run([loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],
-#                                                    feed_dict={FLAGS.p_input:random_sequences,
-#                                                               FLAGS.seqlen: batch_seqlen,
-#                                                               Y_placeholder: test_target_feed,
-#                                                               keep_prob_: 1.0
-#                                                               })
-# =============================================================================
             print('Epochs %d: test loss = %.5f '  % (epochs+1, loss_value)) 
             print('Epochs %d: accuracy = %.5f '  % (epochs+1, bagAccu)) 
             text_file.write('Epochs %d: accuracy = %.5f\n\n'  % (epochs+1, bagAccu))
@@ -765,7 +773,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         ''' evaluate test performance after fininshing training (need add training performance)'''   
         selectIndex = np.arange(num_test)
         feed_dict = fetch_data(test_data,selectIndex,False)
-        bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
+        bagAccu, Y_pred, inst_pred = run_step(sess,[accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
 
         Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
 
