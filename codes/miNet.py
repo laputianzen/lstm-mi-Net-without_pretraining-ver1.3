@@ -617,7 +617,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #                                          optimMethod=utils.get_optimizer(FLAGS.optimizer),
 #                                          var_in_training=vars_to_init)
 #==============================================================================
-        global_step = tf.Variable(0, name='global_step', trainable=False)
+        global_step = tf.Variable(tf.zeros([],dtype=tf.int32), name='global_step', trainable=False)
         train_op = tf.contrib.layers.optimize_loss(loss, global_step, 
                                                    learning_rate=FLAGS.supervised_learning_rate, 
                                                    optimizer=utils.get_optimizer(FLAGS.optimizer),
