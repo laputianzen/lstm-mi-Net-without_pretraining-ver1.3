@@ -554,7 +554,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         #loss = loss_x_entropy(tf.nn.softmax(Y), tf.cast(Y_placeholder, tf.float32))
         with tf.name_scope('softmax_cross_entory_with_logit'):
             x_entropy = metric.loss_x_entropy(tf.nn.softmax(Y), Y_placeholder)
-            tactic_prediction_op = tf.summary.histogram('tactic prediction',tf.nn.softmax(Y))
+            tactic_prediction_op = tf.summary.histogram('tactic_prediction',tf.nn.softmax(Y))
             tactic_score_op = tf.summary.histogram('tactic_prediction',Y)
 # =============================================================================
 #             loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=Y,
