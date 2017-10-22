@@ -773,8 +773,10 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #                    #print("%s with value in [pretrain %s]\n %s" % (ae._b(b+1).name, n, ae._b(b+1).eval(sess)))
 #                    text_file.write("%s with value after fine-tuning\n %s\n" % (instNet._b(b+1).name, instNet._b(b+1).eval(sess)))
 #            text_file.close()
-#            save_path = saver.save(sess, model_ckpt)
-#            print("Model saved in file: %s" % save_path)    
+        if max_epochs is not 0:
+            #tf.train.update_checkpoint_state(log_path,log_path)            
+            save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
+            print("Model saved in file: %s" % save_path)    
 #        else:
 #            saver = tf.train.import_meta_graph(model_ckpt+'.meta')
 #            saver.restore(sess, model_ckpt)                    
@@ -805,14 +807,19 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             inst_gt = dataset.playerMap[k_idx].index(test_multi_label[test_id,:].tolist())
             test_inst_label[test_id,inst_gt] = 1.0
             
-        
-        print('\nAfter %d Epochs: accuracy = %.5f'  % (epochs+1, bagAccu))
+        if max_epochs is not 0:
+            print('\nAfter %d Epochs: accuracy = %.5f'  % (actual_epochs, bagAccu))
+        else:
+            print('\nLoad/Resume Model: accuracy = %.5f'  % (bagAccu))
         metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
         time.sleep(0.5)
         
         
         # generate confunsion matrix
-        filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test_final.csv'.format(fold,epochs)
+        if max_epochs is not 0:
+            filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test_final.csv'.format(fold,actual_epochs)
+        else:
+            filename = None
         metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)        
  
         summary_writer.close()           
