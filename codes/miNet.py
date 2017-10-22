@@ -685,9 +685,11 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                        Y_placeholder: target_feed,
                        keep_prob_: keep_prob}
             return feed_dict
-            
+        
+
         count = 0
-        for epochs in range(FLAGS.finetuning_epochs):
+        for epochs in range(max_epochs):#range(FLAGS.finetuning_epochs):
+            actual_epochs = epochs+resume_step+1
             perm = np.arange(num_train)
             np.random.shuffle(perm)
             #numPlayer = len(batch_multi_KPlabel[0])
@@ -742,16 +744,16 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             selectIndex = np.arange(num_test)
             feed_dict = fetch_data(test_data,selectIndex,False)
             loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
-            print('Epochs %d: test loss = %.5f '  % (epochs+1, loss_value)) 
-            print('Epochs %d: accuracy = %.5f '  % (epochs+1, bagAccu)) 
-            text_file.write('Epochs %d: accuracy = %.5f\n\n'  % (epochs+1, bagAccu))
+            print('Epochs %d: test loss = %.5f '  % (actual_epochs, loss_value)) 
+            print('Epochs %d: accuracy = %.5f '  % (actual_epochs, bagAccu)) 
+            text_file.write('Epochs %d: accuracy = %.5f\n\n'  % (actual_epochs, bagAccu))
             
             
             
             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('bag accuracy %.5f, inst accuracy %.5f\n' %(bagAccu, pAccu))
             
-            filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,epochs)
+            filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,actual_epochs)
             metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)
             #print("")
 
