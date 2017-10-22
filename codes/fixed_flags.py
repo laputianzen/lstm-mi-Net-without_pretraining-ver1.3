@@ -32,6 +32,9 @@ FLAGS.miNet_num_hidden_layer = 1
 FLAGS.pretraining_epochs = 600#600
 FLAGS.finetune_batch_size = 2
 FLAGS.finetuning_epochs = 200
+FLAGS.finetuning_summary_step = 10
+FLAGS.finetuning_saving_epochs = 5
+FLAGS.fine_tune_resume = False
 FLAGS.miNet_common_acfun = 'relu'#'sigmoid'
 
 FLAGS.pre_layer_learning_rate = []   

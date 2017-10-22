@@ -626,16 +626,84 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         summaries_vars_optimize_loss = [var for var in tf.get_collection(tf.GraphKeys.SUMMARIES) if ('OptimizeLoss' in var.name)]
         optimize_loss_op = tf.summary.merge(summaries_vars_optimize_loss)
         
-        vars_to_init.append(global_step)
+# =============================================================================
+#         vars_to_init.append(global_step)
+# =============================================================================
         # adam special parameter beta1, beta2
         #optim_vars = [var for var in tf.global_variables() if ('beta' in var.name or 'Adam' in var.name)] 
         optim_vars = [var for var in tf.global_variables() if (FLAGS.optimizer in var.name)]
         learning_rate_var = [var for var in tf.global_variables() if ('learning_rate' in var.name)]
-        #'OptimizeLoss'
-        sess.run(tf.variables_initializer(vars_to_init))
-        sess.run(tf.variables_initializer(optim_vars))
-        sess.run(tf.variables_initializer(learning_rate_var))
-        sess.run(tf.variables_initializer(tf.trainable_variables()))
+        
+        log_path = FLAGS.miNet_pretrain_model_dir + '/fine_tune/'
+        if not os.path.exists(log_path):
+            os.makedirs(log_path)
+        model_ckpt= tf.train.latest_checkpoint(log_path)
+        saver = tf.train.Saver(tf.trainable_variables())#vars_to_init)
+        
+        sess.run(tf.global_variables_initializer()) 
+        for v in tf.trainable_variables():
+                    print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
+        #model_ckpt = FLAGS.miNet_pretrain_model_dir+ '/model.ckpt'
+        
+                    
+        if not model_ckpt : #len(os.listdir(log_path)) == 0 : #brand new
+            max_epochs = FLAGS.finetuning_epochs
+            resume_step = 0
+            model_ckpt = log_path + '/model.ckpt'
+            print('New training from epochs {} to {}'.format(resume_step,max_epochs))
+            saver._max_to_keep = FLAGS.finetuning_epochs / FLAGS.finetuning_saving_epochs
+            saver.saver_def.max_to_keep = int(saver._max_to_keep)
+        else :
+            split = model_ckpt.split("-")
+            resume_step = int(split[-1])
+            saver.restore(sess, model_ckpt)
+            #saver.recover_last_checkpoints([model_ckpt])
+            model_ckpt = split[0]
+            checkpoint_paths = [(log_path + x[:-6]) for x in os.listdir(log_path) if x.endswith(".index")]
+            saver.recover_last_checkpoints(checkpoint_paths)
+            if FLAGS.fine_tune_resume : #Resume to designed epochs (Designed - last checkpoint)
+                #sess.run(tf.global_variables_initializer())
+                
+# =============================================================================
+#                 sess.run(tf.variables_initializer([global_step]))
+#                 print('global step:', global_step.eval(session=sess))
+# =============================================================================
+                for v in tf.trainable_variables():
+                    print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
+                 
+                #need error detection (now resume must be multiple of finetuning_epochs %we )
+                max_epochs = (FLAGS.finetuning_epochs - resume_step%FLAGS.finetuning_epochs) %FLAGS.finetuning_epochs
+                print('Resume training from epochs {} to {}'.format(resume_step,resume_step+max_epochs))
+                saver._max_to_keep = FLAGS.finetuning_epochs / FLAGS.finetuning_saving_epochs
+                saver.saver_def.max_to_keep = int(saver._max_to_keep)
+            else : # Continue Train
+                max_epochs = FLAGS.finetuning_epochs
+                print('Continue training from epochs {} to {}'.format(resume_step,max_epochs+resume_step))
+                saver._max_to_keep = (resume_step + FLAGS.finetuning_epochs) / FLAGS.finetuning_saving_epochs
+                saver.saver_def.max_to_keep = int(saver._max_to_keep)
+                #resume_step = FLAGS.finetuning_epochs
+# =============================================================================
+#         if len(os.listdir(log_path)) != 0 and FLAGS.fine_tune is not 'retrain':
+# 
+#                 if os.path.isfile(model_ckpt+'.meta'):
+#                     #tf.reset_default_graph()
+#                     print("|---------------|---------------|---------|----------|")
+#                     saver.restore(sess, model_ckpt)
+#                     for v in vars_to_init:
+#                         print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
+# 
+# =============================================================================
+        print('max_to_keep:',saver._max_to_keep)
+        print('max_to_keep in saver_def:',saver.saver_def.max_to_keep)
+# =============================================================================
+#         #'OptimizeLoss'
+#         sess.run(tf.variables_initializer(vars_to_init))
+#         sess.run(tf.variables_initializer([global_step]))
+#         sess.run(tf.variables_initializer(optim_vars))
+#         sess.run(tf.variables_initializer(learning_rate_var))
+#         sess.run(tf.variables_initializer(tf.trainable_variables()))
+# =============================================================================
+
 # =============================================================================
 #         train_loss  = tf.summary.scalar('train_loss',loss)
 # =============================================================================
