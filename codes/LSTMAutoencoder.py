@@ -145,10 +145,15 @@ class LSTMAutoencoder(object):
     self.loss = tf.reduce_mean(tf.square(self.exact_difference))
     #self.loss = tf.reduce_mean(tf.norm((self.input_ - self.output_),axis=2))
     self.output = tf.transpose(self.output_, perm=[1,0,2])
-    if optimizer is None :
-        self.train = tf.train.AdamOptimizer().minimize(self.loss)
-      #self.train = tf.train.RMSPropOptimizer(0.5).minimize(self.loss)
-    else :
+# =============================================================================
+#     if optimizer is None :
+#         self.train = tf.train.AdamOptimizer().minimize(self.loss)
+#       #self.train = tf.train.RMSPropOptimizer(0.5).minimize(self.loss)
+# =============================================================================
+# =============================================================================
+#     else :
+# =============================================================================
+    if optimizer is not None :
         self.train = optimizer.minimize(self.loss)
   
   @staticmethod
