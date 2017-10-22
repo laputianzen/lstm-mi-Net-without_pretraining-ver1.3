@@ -722,11 +722,11 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 # Write the summaries and print an overview fairly often.
                 count = count + 1
                 ''' save training data result after n training steps '''
-                if step % 10 == 0:
+                if step % FLAGS.finetuning_summary_step == 0:
                     # Print status to stdout.
                     #print('Step %d: loss = %.2f (%.3f sec)' % (count, loss_value, duration))
-                    print('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)' % (epochs+1, step, loss_value, duration))
-                    text_file.write('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)\n' % (epochs+1, step, loss_value, duration))
+                    print('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
+                    text_file.write('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)\n' % (actual_epochs, step, loss_value, duration))
                     feed_dict = fetch_data(train_data,selectIndex,True)
                     summary_str = run_step(sess,merged,feed_dict)
                     summary_writer.add_summary(summary_str, count)
@@ -734,9 +734,14 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                     summary_str = run_step(sess,optimize_loss_op,feed_dict)               
                     summary_writer.add_summary(summary_str, count)
                     
-                    np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
+                    np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,actual_epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
                     #np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),logit,fmt='%.4f', delimiter=' ')               
-                    
+                
+            if epochs % FLAGS.finetuning_saving_epochs == 0:
+                #tf.train.update_checkpoint_state(log_path,log_path) 
+                save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
+                print("Model saved in file: %s" % save_path)    
+
 
 
             ''' evaluate test performance after one epoch (need add training performance)'''
