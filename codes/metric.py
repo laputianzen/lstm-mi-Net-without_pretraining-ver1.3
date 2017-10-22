@@ -92,4 +92,5 @@ def ConfusionMatrix(logits,labels,dataset,filename):
     
     df = pd.DataFrame(CM)
     df.round(3)
-    df.to_csv(filename)
+    if filename is not None:
+        df.to_csv(filename)
