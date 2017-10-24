@@ -92,7 +92,7 @@ FLAGS.miNet_pretrain_dir = '{0}/{4}/hidden{1}_{2}_iter{3}/miNet_h{5}L{6}_iter{7}
 FLAGS.miNet_pretrain_model_dir = FLAGS.miNet_pretrain_dir + '/model'
 FLAGS.miNet_pretrain_summary_dir = FLAGS.miNet_pretrain_dir + '/summaries'
 FLAGS._confusion_dir = FLAGS.miNet_pretrain_dir + '/confusionMatrix'
-FLAGS._result_txt = FLAGS.miNet_pretrain_dir + '/final_result.txt'
+FLAGS._ipython_console_txt = FLAGS.miNet_pretrain_dir + '/log.txt'
 FLAGS._logit_txt = FLAGS.miNet_pretrain_dir + '/logits'
 
 FLAGS.ae_lstm_debug = False#True

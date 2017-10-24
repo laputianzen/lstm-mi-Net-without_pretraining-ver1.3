@@ -514,7 +514,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
     if not os.path.exists(FLAGS._logit_txt):
         os.makedirs(FLAGS._logit_txt)
         
-    text_file = open(FLAGS._result_txt,"w")
+    text_file = open(FLAGS._ipython_console_txt,"w")
     with instNetList[0].session.graph.as_default():
         sess = instNetList[0].session
         
@@ -791,14 +791,15 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)      
                 duration = time.time() - start_time
                 
+                
                 # Write the summaries and print an overview fairly often.
                 count = count + 1
                 ''' save training data result after n training steps '''
                 if step % FLAGS.finetuning_summary_step == 0:
                     # Print status to stdout.
                     #print('Step %d: loss = %.2f (%.3f sec)' % (count, loss_value, duration))
-                    print('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
-                    text_file.write('|   Epoch %d  |  Step %d  |  loss = %.3f | (%.3f sec)\n' % (actual_epochs, step, loss_value, duration))
+                    print('|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
+                    text_file.write('|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)\n' % (actual_epochs, step, loss_value, duration))
                     feed_dict = fetch_data(train_data,selectIndex,True)
                     summary_str = run_step(sess,train_merged,feed_dict)
                     summary_writer.add_summary(summary_str, count)
@@ -818,7 +819,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             if epochs % FLAGS.finetuning_saving_epochs == 0:
                 #tf.train.update_checkpoint_state(log_path,log_path) 
                 save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
-                print("Model saved in file: %s" % save_path)    
+                print("Model saved in file: %s" % save_path)
+                text_file.write('Model saved in file: %s\n'  % save_path)
 
 
 
@@ -828,20 +830,22 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             feed_dict = fetch_data(test_data,selectIndex,False)
             loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
             print('Epochs %d: test loss = %.5f '  % (actual_epochs, loss_value)) 
-            print('Epochs %d: accuracy = %.5f '  % (actual_epochs, bagAccu)) 
-            text_file.write('Epochs %d: accuracy = %.5f\n\n'  % (actual_epochs, bagAccu))
+            print('Epochs %d: test accuracy = %.5f '  % (actual_epochs, bagAccu))
+            text_file.write('Epochs %d: test loss = %.5f\n'  % (actual_epochs, loss_value))
+            text_file.write('Epochs %d: test accuracy = %.5f\n'  % (actual_epochs, bagAccu))
             
             ''' save summaries of test data '''
             summary_str = run_step(sess,test_merged,feed_dict)
             summary_writer.add_summary(summary_str, count)     
             
             
-            
             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
-            text_file.write('bag accuracy %.5f, inst accuracy %.5f\n' %(bagAccu, pAccu))
+            text_file.write('test bag accuracy %.5f, test inst accuracy %.5f\n\n' %(bagAccu, pAccu))
             
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,actual_epochs)
             metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)
+            
+            text_file.flush()
             #print("")
 
                     #summary_str = sess.run(summary_op, feed_dict=feed_dict)
@@ -912,7 +916,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)        
  
         summary_writer.close()           
-
+        text_file.close()
 
     
 
