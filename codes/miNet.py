@@ -535,9 +535,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             
 
         hist_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        hist_summaries = [tf.summary.histogram(v.op.name + "_fine_tuning", v)for v in hist_variables if not ('decoder' in v.name)]    
-#        hist_summaries = [tf.summary.histogram(v.op.name + "_fine_tuning", v)
-#                              for v in hist_summaries]
+        hist_summaries = [tf.summary.histogram(v.op.name + "_fine_tuning", v) for v in hist_variables]
         summary_op = tf.summary.merge(hist_summaries)            
         
         #Y = tf.dynamic_stitch(FLAGS.C5k_CLASS,bagOuts)
