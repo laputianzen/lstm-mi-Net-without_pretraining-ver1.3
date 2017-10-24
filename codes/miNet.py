@@ -512,7 +512,10 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         os.makedirs(FLAGS._confusion_dir)
     
     if not os.path.exists(FLAGS._logit_txt):
-        os.makedirs(FLAGS._logit_txt)
+        FLAGS._train_logit_txt = FLAGS._logit_txt + '/train'
+        os.makedirs(FLAGS._train_logit_txt)
+        FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
+        os.makedirs(FLAGS._test_logit_txt)
         
     text_file = open(FLAGS._ipython_console_txt,"w")
     with instNetList[0].session.graph.as_default():
@@ -813,7 +816,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                         summary_str = run_step(sess,optimize_loss_op,feed_dict)               
                         summary_writer.add_summary(summary_str, count)
                     
-                    np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,actual_epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
+                    np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._train_logit_txt,actual_epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
                     #np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),logit,fmt='%.4f', delimiter=' ')               
                 
             if epochs % FLAGS.finetuning_saving_epochs == 0:
@@ -838,6 +841,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             summary_str = run_step(sess,test_merged,feed_dict)
             summary_writer.add_summary(summary_str, count)     
             
+            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
+            np.savetxt('{}/logit{}.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
             
             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('test bag accuracy %.5f, test inst accuracy %.5f\n\n' %(bagAccu, pAccu))
@@ -880,7 +885,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         feed_dict = fetch_data(test_data,selectIndex,False)
         bagAccu, Y_pred, inst_pred = run_step(sess,[accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
 
-        Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
+
 
         ''' calculate instance accuracy (not used afterward)'''
         test_target_feed = test_data['label']
