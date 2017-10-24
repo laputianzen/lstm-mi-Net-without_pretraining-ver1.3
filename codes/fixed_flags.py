@@ -26,14 +26,15 @@ FLAGS.fold_file = FLAGS.input_data_dir + '/split/tactic_bagIdxSplit5(1).mat'
 FLAGS.pretrain_batch_size = 2
 FLAGS.flush_secs  = 120
 
+FLAGS.save_gradints = True
 
 FLAGS.miNet_last_hidden_dim = 16
 FLAGS.miNet_num_hidden_layer = 1
 FLAGS.pretraining_epochs = 600#600
 FLAGS.finetune_batch_size = 2
 FLAGS.finetuning_epochs = 1000
-FLAGS.finetuning_summary_step = 20
-FLAGS.finetuning_saving_epochs = 20
+FLAGS.finetuning_summary_step = 1
+FLAGS.finetuning_saving_epochs = 10
 FLAGS.fine_tune_resume = True
 FLAGS.miNet_common_acfun = 'sigmoid'
 

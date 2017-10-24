@@ -611,19 +611,19 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             vars_to_init.extend(instNet.get_variables_to_init(instNet.num_hidden_layers + 1))
 #        vars_to_init = tf.trainable_variables()
         
-#==============================================================================
-#         train_op, global_step = training(loss, FLAGS.supervised_learning_rate, None, 
-#                                          optimMethod=utils.get_optimizer(FLAGS.optimizer),
-#                                          var_in_training=vars_to_init)
-#==============================================================================
-        global_step = tf.Variable(tf.zeros([],dtype=tf.int32), name='global_step', trainable=False)
-        train_op = tf.contrib.layers.optimize_loss(loss, global_step, 
-                                                   learning_rate=FLAGS.supervised_learning_rate, 
-                                                   optimizer=utils.get_optimizer(FLAGS.optimizer),
-                                                   summaries=["loss","gradients","global_gradient_norm","gradient_norm"])
-        
-        summaries_vars_optimize_loss = [var for var in tf.get_collection(tf.GraphKeys.SUMMARIES) if ('OptimizeLoss' in var.name)]
-        optimize_loss_op = tf.summary.merge(summaries_vars_optimize_loss)
+        if not FLAGS.save_gradints:
+            train_op, global_step = training(loss, FLAGS.supervised_learning_rate, None, 
+                                             optimMethod=utils.get_optimizer(FLAGS.optimizer),
+                                             var_in_training=vars_to_init)
+        else:
+            global_step = tf.Variable(tf.zeros([],dtype=tf.int32), name='global_step', trainable=False)
+            train_op = tf.contrib.layers.optimize_loss(loss, global_step, 
+                                                       learning_rate=FLAGS.supervised_learning_rate, 
+                                                       optimizer=utils.get_optimizer(FLAGS.optimizer),
+                                                       summaries=["loss","gradients","global_gradient_norm","gradient_norm"])
+            
+            summaries_vars_optimize_loss = [var for var in tf.get_collection(tf.GraphKeys.SUMMARIES) if ('OptimizeLoss' in var.name)]
+            optimize_loss_op = tf.summary.merge(summaries_vars_optimize_loss)
         
 # =============================================================================
 #         vars_to_init.append(global_step)
@@ -798,8 +798,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                     summary_str = run_step(sess,merged,feed_dict)
                     summary_writer.add_summary(summary_str, count)
                     
-                    summary_str = run_step(sess,optimize_loss_op,feed_dict)               
-                    summary_writer.add_summary(summary_str, count)
+                    if FLAGS.save_gradints:
+                        summary_str = run_step(sess,optimize_loss_op,feed_dict)               
+                        summary_writer.add_summary(summary_str, count)
                     
                     np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,actual_epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
                     #np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),logit,fmt='%.4f', delimiter=' ')               
