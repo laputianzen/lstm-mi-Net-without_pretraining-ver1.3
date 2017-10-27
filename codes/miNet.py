@@ -828,6 +828,11 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
 
             ''' evaluate test performance after one epoch (need add training performance)'''
+            # train data result
+            selectIndex = np.arange(num_train)
+            feed_dict = fetch_data(train_data,selectIndex,False)
+            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
+            np.savetxt('{}/logit{}-train.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
             # test data result
             selectIndex = np.arange(num_test)
             feed_dict = fetch_data(test_data,selectIndex,False)
@@ -842,7 +847,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             summary_writer.add_summary(summary_str, count)     
             
             Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
-            np.savetxt('{}/logit{}.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+            np.savetxt('{}/logit{}-test.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
             
             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('test bag accuracy %.5f, test inst accuracy %.5f\n\n' %(bagAccu, pAccu))
