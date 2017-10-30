@@ -94,8 +94,6 @@ class miNet(object):
                 # Train weights
                 name_w = self._weights_str.format(i + 1)
                 w_shape = (self.__shape[i], self.__shape[i + 1])
-                #a = tf.multiply(4.0, tf.sqrt(6.0 / (w_shape[0] + w_shape[1])))
-                #w_init = tf.random_uniform(w_shape, -1 * a, a)
 # =============================================================================
 #                 w_init = tf.truncated_normal(w_shape)
                 w_init = utils.xavier_initializer(w_shape)
@@ -188,10 +186,6 @@ class miNet(object):
 
         last_output = input_pl
         for i in range(n - 1):
-#            if i == self.__num_hidden_layers+1:
-#                acfun = tf.sigmoid
-#            else:
-#                acfun = tf.nn.relu
             acfun = self.acfunList[i]
             w = self._w(i + 1, "_fixed")
             b = self._b(i + 1, "_fixed")
@@ -201,10 +195,6 @@ class miNet(object):
         if is_target:
             return last_output
         
-#        if n == self.__num_hidden_layers:
-#            acfun = tf.sigmoid
-#        else:
-#            acfun = tf.nn.relu
         acfun = self.acfunList[n-1]     
         last_output = self._activate(last_output, self._w(n), self._b(n), acfun=acfun)
         
@@ -227,16 +217,8 @@ class miNet(object):
         """
         last_output = input_pl
         
-        for i in range(self.__num_hidden_layers + 1):
-#            if i+1 == self.__num_hidden_layers+1:
-#                acfun = tf.log_sigmoid
-#                dropout = 1.0
-#            else:
-#                acfun = tf.nn.relu
-            #acfun = "sigmoid" acfun = "relu"            
+        for i in range(self.__num_hidden_layers + 1): 
             # Fine tuning will be done on these variables
-            dropout = 1.0
-            #acfun = tf.sigmoid
             acfun = self.acfunList[i]
             w = self._w(i + 1)
             b = self._b(i + 1)
@@ -246,7 +228,6 @@ class miNet(object):
         return last_output
     
     def MIL(self,input_plist, dropout):
-        #input_dim = self.shape[0]
         tmpList = list()
         for i in range(int(input_plist.shape[0])):
             name_input = self._inputs_str.format(i + 1)
@@ -256,43 +237,18 @@ class miNet(object):
             name_instNet = self._instNets_str.format(i + 1)
             with tf.variable_scope("mil") as scope:
                 if i == 0:
-                #if scope.reuse == False:
                     self[name_instNet] = self.single_instNet(self[name_input], dropout)
-                    #scope.reuse = True
                     scope.reuse_variables()
                 else:    
                     self[name_instNet] = self.single_instNet(self[name_input], dropout)
             
             tmpList.append(self[name_instNet])
-            #if not i == 0:
-                #self["y"]  = tf.concat([self["y"],self[name_instNet]],1)
-            #    self["y"]  = [self["y"],self[name_instNet]]
-            #else:
-            #    self["y"] = self[name_instNet]
         
-# =============================================================================
-#         self["y"] = tf.stack(tmpList,axis=1) #axis = 0?1?
-#         self["Y"] =  tf.reduce_max(self["y"],axis=1,name="MILPool")#,keep_dims=True)
-#         self["maxInst"] = tf.argmax(self["y"],axis=1, name="maxInst")
-# =============================================================================
             
         self["y"] = tf.stack(tmpList,axis=0) #axis = 0?1?
         self["Y"] =  tf.reduce_max(self["y"],axis=0,name="MILPool")#,keep_dims=True)
         self["maxInst"] = tf.argmax(self["y"],axis=0, name="maxInst")
         
-        
-        
-        #batch_size = int(self["y"].shape[0])
-        #topInstIdx = tf.reshape(tf.argmax(self["y"],axis=1),[batch_size,1])
-        #self["kinst"] = tf.multiply(tf.round(self["Y"]),
-        #    tf.cast(tf.argmax(self["y"],axis=1)+1,tf.float32),name='key_instance')
-        
-        #topInstIdx = tf.argmax(self["y"],axis=1)
-        #self["kinst"] = tf.multiply(tf.round(self["Y"]),
-        #    tf.cast(topInstIdx+1,tf.float32),name='key_instance')
-        # consider tf.expand_dims to support tf.argmax
-        
-        #return self["Y"], self["kinst"]
         return self["Y"], self["y"], self["maxInst"]
 
 
@@ -341,7 +297,7 @@ def training(loss, learning_rate, loss_key=None, optimMethod=tf.train.AdamOptimi
 
 
 def main_unsupervised(ae_shape,acfunList,dataset,FLAGS,sess=None):
-    #tf.reset_default_graph()
+    
     if sess is None:
         sess = tf.Session()
    
@@ -349,169 +305,9 @@ def main_unsupervised(ae_shape,acfunList,dataset,FLAGS,sess=None):
     for a in range(len(ae_shape)):
         aeList.append(miNet(ae_shape[a],acfunList, sess))
     
-#==============================================================================
-#     fold = FLAGS.fold
-#     learning_rates = FLAGS.pre_layer_learning_rate
-#     
-# #for fold in range(5):
-#     print('fold %d' %(fold+1))
-#     for k in range(len(ae_shape)):
-#         file_str = FLAGS._intermediate_feature_dir + "/C5{0}_fold{1}"
-#         batch_X = np.load(file_str.format(dataset.k[k],fold+1)+'_train.npy')
-#         test_X = np.load(file_str.format(dataset.k[k],fold+1)+'_test.npy')
-#         num_train = len(batch_X)
-#         
-#         print("\nae_shape has %s pretarined layer" %(len(ae_shape[k])-2))
-#         for i in range(len(ae_shape[k]) - 2):
-#             n = i + 1
-#             _pretrain_model_dir = '{0}/C5{1}/pretrain{2}/'.format(FLAGS.miNet_pretrain_model_dir,dataset.k[k],n)
-#             if not os.path.exists(_pretrain_model_dir):
-#                 os.makedirs(_pretrain_model_dir)
-#             
-#             with tf.variable_scope("pretrain_{0}_mi{1}".format(n,k+1)):
-#                 input_ = tf.placeholder(dtype=tf.float32,
-#                                         shape=(None, ae_shape[k][0]),
-#                                         name='ae_input_pl')
-#                 target_ = tf.placeholder(dtype=tf.float32,
-#                                          shape=(None, ae_shape[k][0]),
-#                                          name='ae_target_pl')
-# 
-#                 layer = aeList[k].pretrain_net(input_, n)
-# 
-# 
-# 
-#                 with tf.name_scope("target"):
-#                     target_for_loss = aeList[k].pretrain_net(target_, n, is_target=True)
-#                     
-#                 if acfunList[i] is utils.get_activation_fn('sigmoid'):#if n == aeList[k].num_hidden_layers:
-#                     loss = loss_x_entropy(layer, target_for_loss)
-#                 elif acfunList[i] is utils.get_activation_fn('relu'):
-#                     loss  = tf.reduce_mean(tf.square(layer - target_for_loss))
-#                     #loss  = tf.sqrt(tf.reduce_mean(tf.square(layer - target_for_loss)))
-#                         
-#                 vars_to_init = aeList[k].get_variables_to_init(n)
-#                 
-# 
-#                 train_op, global_step = training(loss, learning_rates[i], i, 
-#                                         optimMethod=utils.get_optimizer(FLAGS.optimizer),
-#                                         var_in_training=vars_to_init)
-# 
-#                 #vars_to_init.append(global_step)    
-# #==============================================================================
-# #                 writer = tf.summary.FileWriter(pjoin(FLAGS.miNet_pretrain_summary_dir,
-# #                                                   'instNet_pre_training'),tf.get_default_graph())
-# #                 writer.close()  
-# #==============================================================================
-#                 
-#                 # adam special parameter beta1, beta2
-#                 pretrain_vars =  tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="pretrain_{0}_mi{1}".format(n,k+1))
-#                 #optim_vars = [var for var in pretrain_vars if ('beta' in var.name or 'Adam' in var.name)]
-# #                for var in adam_vars:
-# #                    vars_to_init.append(var)
-#                         
-#                 pretrain_test_loss  = tf.summary.scalar('pretrain_test_loss',loss)
-#                 
-#                 saver = tf.train.Saver(vars_to_init)
-#                 model_ckpt = _pretrain_model_dir+ 'model.ckpt'    
-#             
-#                 if os.path.isfile(model_ckpt+'.meta'):
-#                     #tf.reset_default_graph()
-#                     print("|---------------|---------------|---------|----------|")
-#                     saver.restore(sess, model_ckpt)
-#                     for v in vars_to_init:
-#                         print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
-#                 
-#                 else:
-#                     summary_dir = pjoin(FLAGS.miNet_pretrain_summary_dir, 'C5{0}/pretrain{1}/'.format(dataset.k[k],n))
-#                     summary_writer = tf.summary.FileWriter(summary_dir,
-#                                                            graph=sess.graph,
-#                                                            flush_secs=FLAGS.flush_secs)
-#                     #summary_vars = [aeList[k]["biases{0}".format(n)], aeList[k]["weights{0}".format(n)]]
-#     
-#                     hist_summarries = [tf.summary.histogram(v.op.name, v)
-#                                    for v in vars_to_init]#summary_vars]
-#                     hist_summarries.append(loss_summaries[i])
-#                     summary_op = tf.summary.merge(hist_summarries)                    
-#                     
-#                     if FLAGS.pretrain_batch_size is None:
-#                         FLAGS.pretrain_batch_size = batch_X.shape[0]
-#                     sess.run(tf.variables_initializer(vars_to_init))
-#                     #sess.run(tf.variables_initializer(optim_vars))
-#                     sess.run(tf.variables_initializer(pretrain_vars))
-#                     print("\n\n")
-#                     print("| Training Step | Cross Entropy |  Layer  |   Epoch  |")
-#                     print("|---------------|---------------|---------|----------|")
-#         
-#                     count = 0
-#                     for epochs in range(FLAGS.pretraining_epochs):
-#                         perm = np.arange(num_train)
-#                         np.random.shuffle(perm)
-#                         
-#                         train_loss = 0.0
-#                         for step in range(int(num_train/FLAGS.pretrain_batch_size)):
-#                             selectIndex = perm[FLAGS.pretrain_batch_size*step:FLAGS.pretrain_batch_size*step+FLAGS.pretrain_batch_size]
-#                             input_feed = np.reshape(batch_X[selectIndex,:,:],
-#                                                     (batch_X[selectIndex,:,:].shape[0]*batch_X[selectIndex,:,:].shape[1],batch_X[selectIndex,:,:].shape[2]))
-#                             target_feed = input_feed
-#                             loss_summary, loss_value = sess.run([train_op, loss],
-#                                                             feed_dict={
-#                                                                 input_: input_feed,
-#                                                                 target_: target_feed,
-#                                                                 })
-# 
-#                             count = count + 1
-#                             train_loss += loss_value
-#                             #if (count-1)*FLAGS.pretrain_batch_size*batch_X.shape[1] % (10*batch_X.shape[1]) ==0:
-#                             if step % 10 ==0 or step == int(num_train/FLAGS.pretrain_batch_size)-1:
-#                                 summary_str = sess.run(summary_op, feed_dict={
-#                                                                 input_: input_feed,
-#                                                                 target_: target_feed,
-#                                                                 })
-#                                 summary_writer.add_summary(summary_str, count)
-#         
-#                                 output = "| {0:>13} | {1:13.4f} | Layer {2} | Epoch {3}  |"\
-#                                         .format(step, loss_value, n, epochs + 1)
-#     
-#                                 print(output)
-#                         print ('epoch %d: mean train loss = %.3f' %(epochs,train_loss/(num_train/FLAGS.pretrain_batch_size)))        
-#                         test_input_feed = np.reshape(test_X,(test_X.shape[0]*test_X.shape[1],test_X.shape[2]))
-#                         test_target_feed = np.reshape(test_X,(test_X.shape[0]*test_X.shape[1],test_X.shape[2]))
-#                         #test_target_feed = test_Y.astype(np.int32)     
-#                         loss_summary, loss_value = sess.run([train_op, loss],
-#                                                             feed_dict={
-#                                                                     input_: test_input_feed,
-#                                                                     target_: test_target_feed,
-#                                                                     })
-#     
-#                         pretrain_test_loss_str = sess.run(pretrain_test_loss,
-#                                                   feed_dict={input_: test_input_feed,
-#                                                              target_: test_target_feed,
-#                                                      })                                          
-#                         summary_writer.add_summary(pretrain_test_loss_str, epochs)
-#                         print ('epoch %d: test loss = %.3f' %(epochs,loss_value))    
-#                         time.sleep(3)
-#                     summary_writer.close()         
-# #                text_file = open("Output.txt", "a")
-# #                for b in range(len(ae_shape) - 2):
-# #                    if sess.run(tf.is_variable_initialized(ae._b(b+1))):
-# #                        #print("%s with value in [pretrain %s]\n %s" % (ae._b(b+1).name, n, ae._b(b+1).eval(sess)))
-# #                        text_file.write("%s with value in [pretrain %s]\n %s\n" % (ae._b(b+1).name, n, ae._b(b+1).eval(sess)))
-# #                text_file.close()
-#                     save_path = saver.save(sess, model_ckpt)
-#                     print("Model saved in file: %s" % save_path)
-#                                       
-#                 #input("\nPress ENTER to CONTINUE\n")  
-#     
-#         time.sleep(0.5)
-#==============================================================================
                                       
     return aeList
 
-
-
-
-
-#text_file = open("final_result.txt", "w")
 
 def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
     
@@ -520,9 +316,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         os.makedirs(FLAGS._confusion_dir)
     
     if not os.path.exists(FLAGS._logit_txt):
-        #FLAGS._train_logit_txt = FLAGS._logit_txt + '/train'
         os.makedirs(FLAGS._train_logit_txt)
-        #FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
         os.makedirs(FLAGS._test_logit_txt)
         
     text_file = open(FLAGS._ipython_console_txt,"w")
@@ -550,7 +344,6 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         hist_summaries = [tf.summary.histogram(v.op.name + "_fine_tuning", v) for v in hist_variables]
         trainable_vars_summary_op = tf.summary.merge(hist_summaries)            
         
-        #Y = tf.dynamic_stitch(FLAGS.C5k_CLASS,bagOuts)
         Y = tf.concat(bagOuts,1,name='output')
         
 # =============================================================================
@@ -580,10 +373,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         decode_beta = tf.cast(FLAGS.decode_beta,tf.float32)
         normalized_regularization = tf.sqrt(regularization)*tf.constant(FLAGS.MAX_Y,dtype=tf.float32) 
         loss = x_entropy + decode_beta * tf.squeeze(normalized_regularization,[0])
-
-#        loss_xs = loss
-#        beta = FLAGS.beta
-#        loss = loss + tf.reduce_sum(variance) * beta        
+   
         train_x_entropy_op = tf.summary.scalar('train/x_entropy_loss',x_entropy)
         train_aelstm_op = tf.summary.scalar('train/aelstm_loss',tf.squeeze(normalized_regularization,[0]))
         train_loss_op = tf.summary.scalar('train/total_loss',loss)        
@@ -616,17 +406,15 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                    test_x_entropy_op,test_aelstm_op,
                                    test_loss_op,test_accu_op])#    
         summary_writer = tf.summary.FileWriter(pjoin(FLAGS.miNet_pretrain_summary_dir,
-                                                      'fine_tuning_iter{0}'.format(FLAGS.finetuning_epochs)),tf.get_default_graph())
-                                                #graph_def=sess.graph_def,
-                                                #flush_secs=FLAGS.flush_secs)
+                                                      'fine_tuning_iter{0}'.format(FLAGS.finetuning_epochs)),
+                                                tf.get_default_graph(),flush_secs=FLAGS.flush_secs)
         vars_to_init = []
-        # initialize lstm variabel         
+        # initialize lstm variables         
         vars_to_init.extend(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='encoder'))
                                 
         for k in range(len(instNetList)):
             instNet = instNetList[k]
             vars_to_init.extend(instNet.get_variables_to_init(instNet.num_hidden_layers + 1))
-#        vars_to_init = tf.trainable_variables()
         
         if not FLAGS.save_gradints:
             train_op, global_step = training(loss, FLAGS.supervised_learning_rate, None, 
@@ -645,10 +433,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 # =============================================================================
 #         vars_to_init.append(global_step)
 # =============================================================================
-        # adam special parameter beta1, beta2
-        #optim_vars = [var for var in tf.global_variables() if ('beta' in var.name or 'Adam' in var.name)] 
-        optim_vars = [var for var in tf.global_variables() if (FLAGS.optimizer in var.name)]
-        learning_rate_var = [var for var in tf.global_variables() if ('learning_rate' in var.name)]
+        #optim_vars = [var for var in tf.global_variables() if (FLAGS.optimizer in var.name)]
+        #learning_rate_var = [var for var in tf.global_variables() if ('learning_rate' in var.name)]
         
         log_path = FLAGS.miNet_pretrain_model_dir + '/fine_tune/'
         if not os.path.exists(log_path):
@@ -657,12 +443,10 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         saver = tf.train.Saver(tf.trainable_variables())#vars_to_init)
         
         sess.run(tf.global_variables_initializer()) 
-        for v in tf.trainable_variables():
-                    print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
-        #model_ckpt = FLAGS.miNet_pretrain_model_dir+ '/model.ckpt'
-        
+        #for v in tf.trainable_variables():
+        #            print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))        
                     
-        if not model_ckpt : #len(os.listdir(log_path)) == 0 : #brand new
+        if not model_ckpt : #brand new
             max_epochs = FLAGS.finetuning_epochs
             resume_step = 0
             model_ckpt = log_path + '/model.ckpt'
@@ -673,19 +457,12 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             split = model_ckpt.split("-")
             resume_step = int(split[-1])
             saver.restore(sess, model_ckpt)
-            #saver.recover_last_checkpoints([model_ckpt])
             model_ckpt = split[0]
             checkpoint_paths = [(log_path + x[:-6]) for x in os.listdir(log_path) if x.endswith(".index")]
             saver.recover_last_checkpoints(checkpoint_paths)
             if FLAGS.fine_tune_resume : #Resume to designed epochs (Designed - last checkpoint)
-                #sess.run(tf.global_variables_initializer())
-                
-# =============================================================================
-#                 sess.run(tf.variables_initializer([global_step]))
-#                 print('global step:', global_step.eval(session=sess))
-# =============================================================================
-                for v in tf.trainable_variables():
-                    print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
+                #for v in tf.trainable_variables():
+                #    print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
                  
                 #need error detection (now resume must be multiple of finetuning_epochs %we )
                 max_epochs = (FLAGS.finetuning_epochs - resume_step%FLAGS.finetuning_epochs) %FLAGS.finetuning_epochs
@@ -697,33 +474,11 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 print('Continue training from epochs {} to {}'.format(resume_step,max_epochs+resume_step))
                 saver._max_to_keep = (resume_step + FLAGS.finetuning_epochs) / FLAGS.finetuning_saving_epochs
                 saver.saver_def.max_to_keep = int(saver._max_to_keep)
-                #resume_step = FLAGS.finetuning_epochs
-# =============================================================================
-#         if len(os.listdir(log_path)) != 0 and FLAGS.fine_tune is not 'retrain':
-# 
-#                 if os.path.isfile(model_ckpt+'.meta'):
-#                     #tf.reset_default_graph()
-#                     print("|---------------|---------------|---------|----------|")
-#                     saver.restore(sess, model_ckpt)
-#                     for v in vars_to_init:
-#                         print("%s with value %s" % (v.name, sess.run(tf.is_variable_initialized(v))))
-# 
-# =============================================================================
+
         print('max_to_keep:',saver._max_to_keep)
         print('max_to_keep in saver_def:',saver.saver_def.max_to_keep)
-# =============================================================================
-#         #'OptimizeLoss'
-#         sess.run(tf.variables_initializer(vars_to_init))
-#         sess.run(tf.variables_initializer([global_step]))
-#         sess.run(tf.variables_initializer(optim_vars))
-#         sess.run(tf.variables_initializer(learning_rate_var))
-#         sess.run(tf.variables_initializer(tf.trainable_variables()))
-# =============================================================================
 
-# =============================================================================
-#         train_loss  = tf.summary.scalar('train_loss',loss)
-# =============================================================================
-        #steps = FLAGS.finetuning_epochs * num_train
+
         trainIdx = dataset.trainIdx
         testIdx = dataset.testIdx
         seqLenMatrix = dataset.seqLenMatrix
@@ -772,11 +527,10 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         
 
         count = 0
-        for epochs in range(max_epochs):#range(FLAGS.finetuning_epochs):
+        for epochs in range(max_epochs):
             actual_epochs = epochs+resume_step+1
             perm = np.arange(num_train)
             np.random.shuffle(perm)
-            #numPlayer = len(batch_multi_KPlabel[0])
             print("|-------------|-----------|-------------|----------|")
             text_file.write("|-------------|-----------|-------------|----------|\n")
             
@@ -808,29 +562,20 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 count = count + 1
                 ''' save training data result after n training steps '''
                 if step % FLAGS.finetuning_summary_step == 0:
-                    # Print status to stdout.
-                    #print('Step %d: loss = %.2f (%.3f sec)' % (count, loss_value, duration))
                     print('|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
                     text_file.write('|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)\n' % (actual_epochs, step, loss_value, duration))
                     feed_dict = fetch_data(train_data,selectIndex,True)
                     summary_str = run_step(sess,train_merged,feed_dict)
                     summary_writer.add_summary(summary_str, count)
 
-#==============================================================================
-#                     summary_str = run_step(sess,train_accu_op,feed_dict)
-#                     summary_writer.add_summary(summary_str, count)                    
-#==============================================================================
-
                     if FLAGS.save_gradints:
                         summary_str = run_step(sess,optimize_loss_op,feed_dict)               
                         summary_writer.add_summary(summary_str, count)
                     
                     np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._train_logit_txt,actual_epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
-                    #np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._logit_txt,epochs,step),logit,fmt='%.4f', delimiter=' ')               
                 
             if epochs % FLAGS.finetuning_saving_epochs == 0:
-                #tf.train.update_checkpoint_state(log_path,log_path) 
-                save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
+                save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)
                 print("Model saved in file: %s" % save_path)
                 text_file.write('Model saved in file: %s\n'  % save_path)
 
@@ -850,11 +595,6 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             print('Epochs %d: test accuracy = %.5f '  % (actual_epochs, bagAccu))
             text_file.write('Epochs %d: test loss = %.5f\n'  % (actual_epochs, loss_value))
             text_file.write('Epochs %d: test accuracy = %.5f\n'  % (actual_epochs, bagAccu))
-                # train data result 
-            selectIndex = np.arange(num_train) 
-            feed_dict = fetch_data(train_data,selectIndex,False) 
-            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
-            np.savetxt('{}/logit{}-train.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ') 
             
             ''' save summaries of test data '''
             summary_str = run_step(sess,test_merged,feed_dict)
@@ -872,57 +612,49 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             text_file.flush()
             #print("")
 
-                    #summary_str = sess.run(summary_op, feed_dict=feed_dict)
-                    #summary_writer.add_summary(summary_str, step)
-                    #summary_img_str = sess.run(
-                    #    tf.image_summary("training_images",
-                    #                tf.reshape(input_pl,
-                    #                        (FLAGS.batch_size,
-                    #                         FLAGS.image_size,
-                    #                         FLAGS.image_size, 1)),
-                    #             max_images=FLAGS.batch_size),
-                    #    feed_dict=feed_dict
-                    #)
-                    #summary_writer.add_summary(summary_img_str)
+            #summary_str = sess.run(summary_op, feed_dict=feed_dict)
+            #summary_writer.add_summary(summary_str, step)
+            #summary_img_str = sess.run(
+            #    tf.image_summary("training_images",
+            #                tf.reshape(input_pl,
+            #                        (FLAGS.batch_size,
+            #                         FLAGS.image_size,
+            #                         FLAGS.image_size, 1)),
+            #             max_images=FLAGS.batch_size),
+            #    feed_dict=feed_dict
+            #)
+            #summary_writer.add_summary(summary_img_str)
                     
-#            for b in range(instNet.num_hidden_layers + 1):
-#                if sess.run(tf.is_variable_initialized(instNet._b(b+1))):
-#                    #print("%s with value in [pretrain %s]\n %s" % (ae._b(b+1).name, n, ae._b(b+1).eval(sess)))
-#                    text_file.write("%s with value after fine-tuning\n %s\n" % (instNet._b(b+1).name, instNet._b(b+1).eval(sess)))
-#            text_file.close()
-        if max_epochs is not 0:
-            #tf.train.update_checkpoint_state(log_path,log_path)            
+        if max_epochs is not 0:           
             save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
-            print("Model saved in file: %s" % save_path)    
-#        else:
-#            saver = tf.train.import_meta_graph(model_ckpt+'.meta')
-#            saver.restore(sess, model_ckpt)                    
+            print("Model saved in file: %s" % save_path)                     
         
-
-        ''' evaluate test performance after fininshing training (need add training performance)'''   
-        selectIndex = np.arange(num_test)
-        feed_dict = fetch_data(test_data,selectIndex,False)
-        bagAccu, Y_pred, inst_pred = run_step(sess,[accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
-
-
-
-        ''' calculate instance accuracy (not used afterward)'''
-        test_target_feed = test_data['label']
-        inst_pred_matrix = np.empty([test_target_feed.shape[0],max(num_inst),test_target_feed.shape[1]])
-        inst_pred_matrix.fill(np.nan)
-        for test_id in range(test_target_feed.shape[0]):
-            for k in range(len(dataset.C5k_CLASS)):
-                for c in range(len(dataset.C5k_CLASS[k])):
-                    realTacticID = dataset.C5k_CLASS[k][c]
-                    inst_pred_matrix[test_id,:,realTacticID] = np.exp(inst_pred[k][:,test_id,c])
-                    
-        test_inst_label = np.empty([test_target_feed.shape[0],max(num_inst)])
-        test_inst_label.fill(np.nan)
-        for test_id in range(len(test_multi_label)):
-            k = np.sum(test_multi_label[test_id,:])
-            k_idx = dataset.k.index(k)
-            inst_gt = dataset.playerMap[k_idx].index(test_multi_label[test_id,:].tolist())
-            test_inst_label[test_id,inst_gt] = 1.0
+# =============================================================================
+#         ''' evaluate test performance after fininshing training (need add training performance)'''   
+#         selectIndex = np.arange(num_test)
+#         feed_dict = fetch_data(test_data,selectIndex,False)
+#         bagAccu, Y_pred, inst_pred = run_step(sess,[accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
+# 
+# 
+# 
+#         ''' calculate instance accuracy (not used afterward)'''
+#         test_target_feed = test_data['label']
+#         inst_pred_matrix = np.empty([test_target_feed.shape[0],max(num_inst),test_target_feed.shape[1]])
+#         inst_pred_matrix.fill(np.nan)
+#         for test_id in range(test_target_feed.shape[0]):
+#             for k in range(len(dataset.C5k_CLASS)):
+#                 for c in range(len(dataset.C5k_CLASS[k])):
+#                     realTacticID = dataset.C5k_CLASS[k][c]
+#                     inst_pred_matrix[test_id,:,realTacticID] = np.exp(inst_pred[k][:,test_id,c])
+#                     
+#         test_inst_label = np.empty([test_target_feed.shape[0],max(num_inst)])
+#         test_inst_label.fill(np.nan)
+#         for test_id in range(len(test_multi_label)):
+#             k = np.sum(test_multi_label[test_id,:])
+#             k_idx = dataset.k.index(k)
+#             inst_gt = dataset.playerMap[k_idx].index(test_multi_label[test_id,:].tolist())
+#             test_inst_label[test_id,inst_gt] = 1.0
+# =============================================================================
             
         if max_epochs is not 0:
             print('\nAfter %d Epochs: accuracy = %.5f'  % (actual_epochs, bagAccu))
