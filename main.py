@@ -166,7 +166,7 @@ acfunList.append(None)
 miList = miNet.main_unsupervised(instNet_shape,acfunList,datasets,FLAGS,sess)
 miNet.main_supervised(miList,num_inst,nchoosek_inputs,datasets,FLAGS)
         
-        
+sess.close()        
 
 
 
