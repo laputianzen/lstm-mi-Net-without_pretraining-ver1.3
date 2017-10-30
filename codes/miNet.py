@@ -270,9 +270,17 @@ class miNet(object):
             #else:
             #    self["y"] = self[name_instNet]
         
-        self["y"] = tf.stack(tmpList,axis=1)
-        self["Y"] =  tf.reduce_max(self["y"],axis=1,name="MILPool")#,keep_dims=True)
-        self["maxInst"] = tf.argmax(self["y"],axis=1, name="maxInst")
+# =============================================================================
+#         self["y"] = tf.stack(tmpList,axis=1) #axis = 0?1?
+#         self["Y"] =  tf.reduce_max(self["y"],axis=1,name="MILPool")#,keep_dims=True)
+#         self["maxInst"] = tf.argmax(self["y"],axis=1, name="maxInst")
+# =============================================================================
+            
+        self["y"] = tf.stack(tmpList,axis=0) #axis = 0?1?
+        self["Y"] =  tf.reduce_max(self["y"],axis=0,name="MILPool")#,keep_dims=True)
+        self["maxInst"] = tf.argmax(self["y"],axis=0, name="maxInst")
+        
+        
         
         #batch_size = int(self["y"].shape[0])
         #topInstIdx = tf.reshape(tf.argmax(self["y"],axis=1),[batch_size,1])
@@ -512,9 +520,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         os.makedirs(FLAGS._confusion_dir)
     
     if not os.path.exists(FLAGS._logit_txt):
-        FLAGS._train_logit_txt = FLAGS._logit_txt + '/train'
+        #FLAGS._train_logit_txt = FLAGS._logit_txt + '/train'
         os.makedirs(FLAGS._train_logit_txt)
-        FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
+        #FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
         os.makedirs(FLAGS._test_logit_txt)
         
     text_file = open(FLAGS._ipython_console_txt,"w")
@@ -530,8 +538,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
         offset = tf.constant(instIdx)
         for k in range(len(instNetList)):
-            with tf.name_scope('C5{0}'.format(dataset.k[k])):            
+            with tf.name_scope('C5{0}'.format(dataset.k[k])):
                 out_Y, out_y, out_maxInst = instNetList[k].MIL(tf.transpose(inputs[k],perm=(1,0,2)),keep_prob_)
+                
             bagOuts.append(out_Y)
             instOuts.append(out_y)
             maxInstOuts.append(out_maxInst+offset[k])
@@ -828,11 +837,11 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
 
             ''' evaluate test performance after one epoch (need add training performance)'''
-            # train data result
-            selectIndex = np.arange(num_train)
-            feed_dict = fetch_data(train_data,selectIndex,False)
-            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
-            np.savetxt('{}/logit{}-train.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+            # train data result 
+            selectIndex = np.arange(num_train) 
+            feed_dict = fetch_data(train_data,selectIndex,False) 
+            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
+            np.savetxt('{}/logit{}-train.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')            
             # test data result
             selectIndex = np.arange(num_test)
             feed_dict = fetch_data(test_data,selectIndex,False)
@@ -841,13 +850,18 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             print('Epochs %d: test accuracy = %.5f '  % (actual_epochs, bagAccu))
             text_file.write('Epochs %d: test loss = %.5f\n'  % (actual_epochs, loss_value))
             text_file.write('Epochs %d: test accuracy = %.5f\n'  % (actual_epochs, bagAccu))
+                # train data result 
+            selectIndex = np.arange(num_train) 
+            feed_dict = fetch_data(train_data,selectIndex,False) 
+            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
+            np.savetxt('{}/logit{}-train.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ') 
             
             ''' save summaries of test data '''
             summary_str = run_step(sess,test_merged,feed_dict)
             summary_writer.add_summary(summary_str, count)     
             
             Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
-            np.savetxt('{}/logit{}-test.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+            np.savetxt('{}/logit{}.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
             
             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('test bag accuracy %.5f, test inst accuracy %.5f\n\n' %(bagAccu, pAccu))
@@ -900,7 +914,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             for k in range(len(dataset.C5k_CLASS)):
                 for c in range(len(dataset.C5k_CLASS[k])):
                     realTacticID = dataset.C5k_CLASS[k][c]
-                    inst_pred_matrix[test_id,:,realTacticID] = np.exp(inst_pred[k][test_id,:,c])
+                    inst_pred_matrix[test_id,:,realTacticID] = np.exp(inst_pred[k][:,test_id,c])
                     
         test_inst_label = np.empty([test_target_feed.shape[0],max(num_inst)])
         test_inst_label.fill(np.nan)

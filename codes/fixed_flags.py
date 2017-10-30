@@ -94,6 +94,8 @@ FLAGS.miNet_pretrain_summary_dir = FLAGS.miNet_pretrain_dir + '/summaries'
 FLAGS._confusion_dir = FLAGS.miNet_pretrain_dir + '/confusionMatrix'
 FLAGS._ipython_console_txt = FLAGS.miNet_pretrain_dir + '/log.txt'
 FLAGS._logit_txt = FLAGS.miNet_pretrain_dir + '/logits'
+FLAGS._train_logit_txt = FLAGS._logit_txt + '/train'
+FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
 
 FLAGS.ae_lstm_debug = False#True
 FLAGS.ae_lstm_save_summary_step = 10

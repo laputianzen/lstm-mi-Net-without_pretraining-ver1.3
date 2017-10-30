@@ -58,7 +58,8 @@ def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
         for k in range(len(dataset.k)):
             if Y_pred[bagIdx] in dataset.C5k_CLASS[k]:
                 c = dataset.C5k_CLASS[k].index(Y_pred[bagIdx])
-                kinst = np.argmax(inst_pred[k][bagIdx,:,c])
+                kinst = np.argmax(inst_pred[k][:,bagIdx,c])
+                #kinst = np.argmax(inst_pred[k][bagIdx,:,c])
                 KP_pred[bagIdx] = dataset.playerMap[k][kinst]
                 
     Y_correct = np.equal(Y_pred,np.argmax(test_Y,1))
