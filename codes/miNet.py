@@ -24,6 +24,8 @@ import net_param
 import dataset
 import utils
 import metric
+import LSTMAutoencoder
+
 
 class miNet(object):
     
@@ -318,6 +320,10 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
     if not os.path.exists(FLAGS._logit_txt):
         os.makedirs(FLAGS._train_logit_txt)
         os.makedirs(FLAGS._test_logit_txt)
+    
+    if not os.path.exists(FLAGS._dec_output_dir):
+        os.makedirs(FLAGS._dec_output_train_dir)
+        os.makedirs(FLAGS._dec_output_test_dir)     
         
     text_file = open(FLAGS._ipython_console_txt,"w")
     with instNetList[0].session.graph.as_default():
@@ -683,6 +689,23 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename,text_file)
             
             text_file.flush()
+            
+            ''' save decode result '''
+            dec_output = tf.get_collection('ae_lstm/dec_output')
+            if actual_epochs % FLAGS.save_dec_epochs == 0:
+                selectIndex = np.arange(num_train)
+                feed_dict = fetch_data(train_data,selectIndex,False)
+                dec_val = run_step(sess,dec_output,feed_dict)
+            
+                LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+                                             FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
+                selectIndex = np.arange(num_test)
+                feed_dict = fetch_data(test_data,selectIndex,False)
+                dec_val = run_step(sess,dec_output,feed_dict)
+            
+                LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+                                             FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
+                print('finish saving decode result!!')
             #print("")
 
             #summary_str = sess.run(summary_op, feed_dict=feed_dict)
@@ -744,6 +767,21 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
  
         summary_writer.close()           
         text_file.close()
+
+        ''' save decode result '''
+        selectIndex = np.arange(num_train)
+        feed_dict = fetch_data(train_data,selectIndex,False)
+        dec_val = run_step(sess,dec_output,feed_dict)
+    
+        LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+                                     FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
+        selectIndex = np.arange(num_test)
+        feed_dict = fetch_data(test_data,selectIndex,False)
+        dec_val = run_step(sess,dec_output,feed_dict)
+    
+        LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+                                     FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
+        print('finish saving decode result!!')
 
     
 

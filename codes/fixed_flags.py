@@ -30,6 +30,7 @@ FLAGS.finetune_batch_size = 2
 FLAGS.finetuning_epochs = 10
 FLAGS.finetuning_summary_step = 10
 FLAGS.finetuning_saving_epochs = 1
+FLAGS.save_dec_epochs = 50
 FLAGS.fine_tune_resume = True
 FLAGS.miNet_common_acfun = 'sigmoid'
 
@@ -68,6 +69,9 @@ FLAGS._ipython_console_txt = FLAGS.miNet_train_dir + '/log.txt'
 FLAGS._logit_txt = FLAGS.miNet_train_dir + '/logits'
 FLAGS._train_logit_txt = FLAGS._logit_txt + '/train'
 FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
+FLAGS._dec_output_dir = FLAGS.miNet_train_dir + '/decode'
+FLAGS._dec_output_train_dir = FLAGS._dec_output_dir + '/train'
+FLAGS._dec_output_test_dir = FLAGS._dec_output_dir + '/test'
 
 FLAGS.ae_lstm_debug = False#True
 FLAGS.ae_lstm_save_summary_step = 10
