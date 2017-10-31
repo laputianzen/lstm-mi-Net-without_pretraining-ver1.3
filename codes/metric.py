@@ -50,6 +50,19 @@ def multiClassEvaluation(logits, labels):
     error = tf.subtract(1.0,accu)
     return accu, error
 
+def calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder):
+    bool_YMask = tf.one_hot(tf.argmax(Y,axis=-1),int(Y.shape[1]),axis=-1)
+    bool_YMask = tf.cast(bool_YMask,tf.bool)
+    y = tf.boolean_mask(y_playerPool,bool_YMask)        
+    correct_prediction = tf.equal(tf.argmax(Y,axis=1), tf.argmax(Y_placeholder,axis=1))
+    y_correctY = tf.boolean_mask(y,correct_prediction)
+    y_placeholder_correctY = tf.cast(tf.boolean_mask(y_placeholder,correct_prediction),tf.int32)
+    y_correct = tf.equal(y_correctY,y_placeholder_correctY)
+    NUM_PLAYER = int(y_placeholder.shape[1])
+    y_accu = tf.reduce_sum(tf.cast(y_correct,tf.float32))/(tf.reduce_sum(tf.cast(correct_prediction,tf.float32))*NUM_PLAYER)
+    return y_accu
+      
+
 def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
     
     num_k = np.zeros(len(dataset.tacticName),dtype=np.int8)

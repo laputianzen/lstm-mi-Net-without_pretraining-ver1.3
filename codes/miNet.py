@@ -326,10 +326,21 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         bagOuts = []
         instOuts = []
         maxInstOuts = []
+        playerOuts = []
         instIdx = np.insert(np.cumsum(num_inst),0,0)
         keep_prob_ = tf.placeholder(dtype=tf.float32,
                                            name='dropout_ratio')
 
+        def TF_InstToPlayerIndex(out_maxInst,num_inst,playerMap):
+            bool_instMask = tf.one_hot(out_maxInst,num_inst,axis=-1,dtype=tf.int32)
+            num_class = int(bool_instMask.shape[1])
+            bool_instMask = tf.reshape(bool_instMask,[-1, num_inst])
+            tf_playerMap = tf.constant(playerMap,dtype=tf.int32)
+            num_player = int(tf_playerMap.shape[1])
+            playerIdx = tf.matmul(bool_instMask,tf_playerMap)
+            playerIdx = tf.reshape(playerIdx,[-1,num_class,num_player])
+            return playerIdx
+            
         offset = tf.constant(instIdx)
         for k in range(len(instNetList)):
             with tf.name_scope('C5{0}'.format(dataset.k[k])):
@@ -339,22 +350,50 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             instOuts.append(out_y)
             maxInstOuts.append(out_maxInst+offset[k])
             
+            #convert instance index to player index
+            playerIdx = TF_InstToPlayerIndex(out_maxInst,num_inst[k],dataset.playerMap[k])
+# =============================================================================
+#             bool_instMask = tf.one_hot(out_maxInst,num_inst[k],axis=-1,dtype=tf.int32)
+#             num_class = int(bool_instMask.shape[1])
+#             bool_instMask = tf.reshape(bool_instMask,[-1, num_inst[k]])
+#             tf_playerMap = tf.constant(dataset.playerMap[k],dtype=tf.int32)
+#             num_player = int(tf_playerMap.shape[1])
+#             playerIdx = tf.matmul(bool_instMask,tf_playerMap)
+#             playerIdx = tf.reshape(playerIdx,[-1,num_class,num_player])
+# =============================================================================
+            playerOuts.append(playerIdx)
+            
 
         hist_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         hist_summaries = [tf.summary.histogram(v.op.name + "_fine_tuning", v) for v in hist_variables]
         trainable_vars_summary_op = tf.summary.merge(hist_summaries)            
         
-        Y = tf.concat(bagOuts,1,name='output')
-        
-# =============================================================================
-#         y_maxInsts = tf.concat(maxInstOuts,1, name='maxInsts')
-# =============================================================================
+
+
                     
         NUM_CLASS = len(dataset.tacticName)
+        NUM_PLAYER= dataset.numPlayer
         Y_placeholder = tf.placeholder(tf.float32,
                                         shape=(None,NUM_CLASS),
-                                        name='target_pl')
+                                        name='targetB_pl')
 
+        y_placeholder = tf.placeholder(tf.float32,
+                                        shape=(None,NUM_PLAYER),
+                                        name='targetP_pl')
+
+        Y = tf.concat(bagOuts,1,name='output')
+        y_playerPool = tf.concat(playerOuts,1,name='key_player')
+        y_accu = metric.calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder)
+# =============================================================================
+#         bool_YMask = tf.one_hot(tf.argmax(Y,axis=-1),int(Y.shape[1]),axis=-1)
+#         bool_YMask = tf.cast(bool_YMask,tf.bool)
+#         y = tf.boolean_mask(y_playerPool,bool_YMask)        
+#         correct_prediction = tf.equal(tf.argmax(Y,axis=1), tf.argmax(Y_placeholder,axis=1))
+#         y_correctY = tf.boolean_mask(y,correct_prediction)
+#         y_placeholder_correctY = tf.cast(tf.boolean_mask(y_placeholder,correct_prediction),tf.int32)
+#         y_correct = tf.equal(y_correctY,y_placeholder_correctY)
+#         y_accu = tf.reduce_sum(tf.cast(y_correct,tf.float32))/(tf.reduce_sum(tf.cast(correct_prediction,tf.float32))*NUM_PLAYER)
+# =============================================================================
         with tf.name_scope('softmax_cross_entory_with_logit'):
             x_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=Y,
                                 labels=Y_placeholder,name='softmax_cross_entropy'))            
@@ -388,23 +427,26 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         train_accu_op = tf.summary.scalar('train/accuracy',accu)        
         test_accu_op = tf.summary.scalar('test/accuracy',accu)
         
-
+        train_pAccu_op = tf.summary.scalar('train/p_accu',y_accu)
+        test_pAccu_op = tf.summary.scalar('test/p_accu', y_accu)
 # =============================================================================
 #         Y_labels_image = label2image(Y_placeholder)
 #         #label_op = tf.summary.image('tactic_labels',Y_label_image)
 #         Y_logits_image = label2image(tf.nn.softmax(Y))
 #         #label_op = tf.summary.histogram('tactic_labels',Y_placeholder)
 # =============================================================================
+        train_accus_merged = tf.summary.merge([train_accu_op, train_pAccu_op])
         train_merged = tf.summary.merge([train_lstm_last_output_op,
                                    train_tactic_prediction_op,
                                    train_tactic_score_op,
                                    train_x_entropy_op,train_aelstm_op,
-                                   train_loss_op,train_accu_op,trainable_vars_summary_op])#,output_op,label_op])
+                                   train_loss_op,#train_accu_op,
+                                   trainable_vars_summary_op])#,output_op,label_op])
         test_merged = tf.summary.merge([test_lstm_last_output_op,
                                    test_tactic_prediction_op,
                                    test_tactic_score_op,
                                    test_x_entropy_op,test_aelstm_op,
-                                   test_loss_op,test_accu_op])#    
+                                   test_loss_op,test_accu_op,test_pAccu_op])#    
         summary_writer = tf.summary.FileWriter(pjoin(FLAGS.miNet_pretrain_summary_dir,
                                                       'fine_tuning_iter{0}'.format(FLAGS.finetuning_epochs)),
                                                 tf.get_default_graph(),flush_secs=FLAGS.flush_secs)
@@ -494,7 +536,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
         print(strBagShape)
         batch_multi_X = dataset.dataTraj[dataset.trainIdx,:]
-        train_data = {'sequences':batch_multi_X,'seqlen':seqLenMatrix[trainIdx,:],'label':batch_multi_Y}
+        train_data = {'sequences':batch_multi_X,'seqlen':seqLenMatrix[trainIdx,:],'label':batch_multi_Y,'KPLabel':batch_multi_KPlabel}
 
         testdir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/test/fold%d' %(fold+1)
         test_file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_test%d.mat' %(fold+1) 
@@ -503,7 +545,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         strBagShape = "the shape of bags is ({0},{1})".format(test_multi_Y.shape[0],test_multi_Y.shape[1])
         print(strBagShape)
         test_multi_X = dataset.dataTraj[testIdx,:]
-        test_data = {'sequences':test_multi_X,'seqlen':seqLenMatrix[testIdx,:],'label':test_multi_Y}
+        test_data = {'sequences':test_multi_X,'seqlen':seqLenMatrix[testIdx,:],'label':test_multi_Y,'KPLabel':test_multi_label}
       
         if FLAGS.finetune_batch_size is None:
             FLAGS.finetune_batch_size = len(test_multi_Y)
@@ -513,6 +555,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             random_sequences = np.reshape(data['sequences'][selectIndex,:],(-1,data['sequences'].shape[2],data['sequences'].shape[3]))
             batch_seqlen = np.reshape(data['seqlen'][selectIndex,:],(-1))
             target_feed = data['label'][selectIndex].astype(np.int32)            
+            targetP_feed= data['KPLabel'][selectIndex].astype(np.int32)
             
             if dropout:
                 keep_prob = FLAGS.keep_prob
@@ -522,6 +565,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             feed_dict={FLAGS.p_input:random_sequences,
                        FLAGS.seqlen: batch_seqlen,
                        Y_placeholder: target_feed,
+                       y_placeholder: targetP_feed,
                        keep_prob_: keep_prob}
             return feed_dict
         
@@ -587,6 +631,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             feed_dict = fetch_data(train_data,selectIndex,False) 
             Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
             np.savetxt('{}/logit{}-train.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')            
+            summary_str = run_step(sess,train_accus_merged,feed_dict)
+            summary_writer.add_summary(summary_str, count)
             # test data result
             selectIndex = np.arange(num_test)
             feed_dict = fetch_data(test_data,selectIndex,False)
@@ -600,11 +646,27 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             summary_str = run_step(sess,test_merged,feed_dict)
             summary_writer.add_summary(summary_str, count)     
             
-            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
+            Y_scaled, Y_unscaled= run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
             np.savetxt('{}/logit{}-test.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+            tf_pAccu = run_step(sess,y_accu,feed_dict)
+# =============================================================================
+#             tf_Ycorrect, tf_ycY, tf_ycYpl, tf_ycorrect, tf_pAccu = run_step(sess,[correct_prediction,y_correctY,
+#                                       y_placeholder_correctY,y_correct,
+#                                       y_accu],feed_dict)
+# =============================================================================
+            print('tf test inst accuracy %.5f' %(tf_pAccu))
             
             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('test bag accuracy %.5f, test inst accuracy %.5f\n\n' %(bagAccu, pAccu))
+            if np.abs(pAccu - tf_pAccu) > 1e-6: #or tf_pAccu == 1.0:
+                print('tf and np version of pAccu is conflicted!')
+                print('tf result(correct_prediction,y_correctY,y_placeholder_correctY,y_correct)')
+# =============================================================================
+#                 print(tf_Ycorrect, tf_ycY, tf_ycYpl, tf_ycorrect)
+# =============================================================================
+                #print('np result(Y_pred,inst_pred,test_multi_Y,test_multi_label)')
+                #print(Y_pred,inst_pred,test_multi_Y,test_multi_label)
+                return
             
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,actual_epochs)
             metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)
@@ -629,14 +691,12 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
             print("Model saved in file: %s" % save_path)                     
         
+        ''' evaluate test performance after fininshing training (need add training performance)'''   
+        selectIndex = np.arange(num_test)
+        feed_dict = fetch_data(test_data,selectIndex,False)
+        bagAccu, Y_pred, inst_pred = run_step(sess,[accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
+
 # =============================================================================
-#         ''' evaluate test performance after fininshing training (need add training performance)'''   
-#         selectIndex = np.arange(num_test)
-#         feed_dict = fetch_data(test_data,selectIndex,False)
-#         bagAccu, Y_pred, inst_pred = run_step(sess,[accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
-# 
-# 
-# 
 #         ''' calculate instance accuracy (not used afterward)'''
 #         test_target_feed = test_data['label']
 #         inst_pred_matrix = np.empty([test_target_feed.shape[0],max(num_inst),test_target_feed.shape[1]])
