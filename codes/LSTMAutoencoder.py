@@ -341,6 +341,7 @@ def pretraining(ae,sess,dataset,FLAGS):
         summary_writer.close()
         
 def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir):
+    Spred = Spred[:,:,0:2]
     num_player =5 
     img=mpimg.imread('raw/court.png')
     half_court = img[:,325:651,:]
