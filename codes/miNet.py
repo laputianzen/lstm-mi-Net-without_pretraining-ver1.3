@@ -635,7 +635,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             text_file.write('Epochs %d: train loss = %.5f\n'  % (actual_epochs, loss_value))
             text_file.write('Epochs %d: train accuracy = %.5f\n'  % (actual_epochs, bagAccu))
             Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
-            np.savetxt('{}/logit{}-train.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')            
+            np.savetxt('{}/logit{}-train-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+            np.savetxt('{}/logit{}-train-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_unscaled,fmt='%.4f', delimiter=' ')            
             summary_str = run_step(sess,train_accus_merged,feed_dict)
             summary_writer.add_summary(summary_str, count)
             
@@ -645,6 +646,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             selectIndex = np.arange(num_test)
             feed_dict = fetch_data(test_data,selectIndex,False)
             loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
+            print('')
             print('Epochs %d: test loss = %.5f '  % (actual_epochs, loss_value)) 
             print('Epochs %d: test accuracy = %.5f '  % (actual_epochs, bagAccu))
             text_file.write('Epochs %d: test loss = %.5f\n'  % (actual_epochs, loss_value))
@@ -655,7 +657,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             summary_writer.add_summary(summary_str, count)     
             
             Y_scaled, Y_unscaled= run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
-            np.savetxt('{}/logit{}-test.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+            np.savetxt('{}/logit{}-test-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+            np.savetxt('{}/logit{}-test-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_unscaled,fmt='%.4f', delimiter=' ')
             tf_pAccu = run_step(sess,y_accu,feed_dict)
 # =============================================================================
 #             tf_Ycorrect, tf_ycY, tf_ycYpl, tf_ycorrect, tf_pAccu = run_step(sess,[correct_prediction,y_correctY,
