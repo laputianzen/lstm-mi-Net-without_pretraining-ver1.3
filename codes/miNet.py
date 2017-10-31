@@ -725,10 +725,13 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             #    feed_dict=feed_dict
             #)
             #summary_writer.add_summary(summary_img_str)
-                    
-        if max_epochs is not 0:           
-            save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
-            print("Model saved in file: %s" % save_path)                     
+         
+        ''' for final epochs files doesn't exist '''           
+# =============================================================================
+#         if max_epochs is not 0:           
+#             save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
+#             print("Model saved in file: %s" % save_path)                     
+# =============================================================================
         
         ''' evaluate test performance after fininshing training (need add training performance)'''   
         selectIndex = np.arange(num_test)
@@ -754,7 +757,6 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #             inst_gt = dataset.playerMap[k_idx].index(test_multi_label[test_id,:].tolist())
 #             test_inst_label[test_id,inst_gt] = 1.0
 # =============================================================================
-            
         if max_epochs is not 0:
             print('\nAfter %d Epochs: accuracy = %.5f'  % (actual_epochs, bagAccu))
         else:
@@ -773,23 +775,26 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         summary_writer.close()           
         text_file.close()
 
-        ''' save decode result '''
-        selectIndex = np.arange(num_train)
-        feed_dict = fetch_data(train_data,selectIndex,False)
-        dec_val = run_step(sess,dec_output,feed_dict)
-        dec_val = dec_val[0]
-        LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
-                                     FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir,
-                                     dataset.trainIdx)
- 
-        selectIndex = np.arange(num_test)
-        feed_dict = fetch_data(test_data,selectIndex,False)
-        dec_val = run_step(sess,dec_output,feed_dict)
-        dec_val = dec_val[0]
-        LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
-                                     FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_test_dir,
-                                     dataset.testIdx)
-        print('finish saving decode result!!')
+        ''' for final epochs files doesn't exist '''
+# =============================================================================
+#         ''' save decode result '''
+#         selectIndex = np.arange(num_train)
+#         feed_dict = fetch_data(train_data,selectIndex,False)
+#         dec_val = run_step(sess,dec_output,feed_dict)
+#         dec_val = dec_val[0]
+#         LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+#                                      FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir,
+#                                      dataset.trainIdx)
+#  
+#         selectIndex = np.arange(num_test)
+#         feed_dict = fetch_data(test_data,selectIndex,False)
+#         dec_val = run_step(sess,dec_output,feed_dict)
+#         dec_val = dec_val[0]
+#         LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+#                                      FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_test_dir,
+#                                      dataset.testIdx)
+#         print('finish saving decode result!!')
+# =============================================================================
 
     
 
