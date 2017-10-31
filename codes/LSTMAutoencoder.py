@@ -371,7 +371,7 @@ def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir):
         fig1 = plt.figure()
         #plt.subplot(122)
         ax1 = fig1.gca(projection='3d')
-        ax1.plot_surface(r, c, 0, rstride=5, cstride=5, facecolors=half_court)
+        ax1.plot_surface(r, c, np.atleast_2d(0), rstride=5, cstride=5, facecolors=half_court)
     
 
         " plot trajectories ground truth "
