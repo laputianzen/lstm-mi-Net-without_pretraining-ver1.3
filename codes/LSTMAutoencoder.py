@@ -340,7 +340,7 @@ def pretraining(ae,sess,dataset,FLAGS):
         print("Model saved in file: %s" % save_path)#
         summary_writer.close()
         
-def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir):
+def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir,orginVideoIdx):
     Spred = Spred[:,:,0:2]
     num_player =5 
     img=mpimg.imread('raw/court.png')
@@ -366,7 +366,7 @@ def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir):
         plt.legend()
         fig = plt.gcf()
         #plt.show(hcplot)        
-        fig.savefig('{2}/v{0}_2d({1}).png'.format(v,iteration,save_dir), bbox_inches='tight')
+        fig.savefig('{2}/v{0}_2d({1}).png'.format(orginVideoIdx[v]+1,iteration,save_dir), bbox_inches='tight')
         
         fig1 = plt.figure()
         #plt.subplot(122)
@@ -391,6 +391,6 @@ def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir):
         ax1.autoscale(enable=True, axis='both', tight=True)
     
         #plt.show(fig1)
-        pl.dump(fig1,open('{2}/v{0}_({1}).pickle'.format(v,iteration,save_dir),'wb'))
-        fig1.savefig('{2}/v{0}_3d({1}).png'.format(v,iteration,save_dir), bbox_inches='tight')
+        pl.dump(fig1,open('{2}/v{0}_({1}).pickle'.format(orginVideoIdx[v]+1,iteration,save_dir),'wb'))
+        fig1.savefig('{2}/v{0}_3d({1}).png'.format(orginVideoIdx[v]+1,iteration,save_dir), bbox_inches='tight')
         plt.close('all')
