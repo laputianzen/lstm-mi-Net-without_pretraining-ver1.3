@@ -104,8 +104,8 @@ class miNet(object):
                 name_b = self._biases_str.format(i + 1)
                 b_shape = (self.__shape[i + 1],)
 # =============================================================================
-#                 b_init = tf.zeros(b_shape) + 0.01
-                b_init = utils.xavier_initializer(b_shape,uniform=True)
+                b_init = tf.zeros(b_shape) #+ 0.01
+                #b_init = utils.xavier_initializer(b_shape,uniform=True)
 # =============================================================================
                 
                 self[name_b] = tf.Variable(b_init, trainable=True, name=name_b)
@@ -123,8 +123,8 @@ class miNet(object):
                     name_b_out = self._biases_str.format(i + 1) + "_out"
                     b_shape = (self.__shape[i],)
 # =============================================================================
-#                     b_init = tf.zeros(b_shape) + 0.01
-                    b_init = utils.xavier_initializer(b_shape,uniform=True)
+                    b_init = tf.zeros(b_shape) #+ 0.01
+                    #b_init = utils.xavier_initializer(b_shape,uniform=True)
 # =============================================================================
                     self[name_b_out] = tf.Variable(b_init, trainable=True, name=name_b_out)
                     
