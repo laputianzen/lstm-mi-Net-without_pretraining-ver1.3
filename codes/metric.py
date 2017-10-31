@@ -51,16 +51,37 @@ def multiClassEvaluation(logits, labels):
     return accu, error
 
 def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
-          
+    
+    num_k = np.zeros(len(dataset.tacticName),dtype=np.int8)
+    IdxMap = []
+    tmp = []
+    k = 0
+    boundary = len(dataset.C5k_CLASS[0])
+    for idx in range(len(dataset.tacticName)):
+        if idx >= boundary:
+            k = k + 1            
+            boundary = boundary + len(dataset.C5k_CLASS[k])
+            IdxMap.append(tmp)
+            tmp = []
+        num_k[idx] = k
+        tmp.append(idx)
+    IdxMap.append(tmp)
     
     KP_pred = np.zeros((len(Y_pred),5))
     for bagIdx in range(len(Y_pred)):
-        for k in range(len(dataset.k)):
-            if Y_pred[bagIdx] in dataset.C5k_CLASS[k]:
-                c = dataset.C5k_CLASS[k].index(Y_pred[bagIdx])
-                kinst = np.argmax(inst_pred[k][:,bagIdx,c])
-                #kinst = np.argmax(inst_pred[k][bagIdx,:,c])
-                KP_pred[bagIdx] = dataset.playerMap[k][kinst]
+        k = num_k[Y_pred[bagIdx]]
+        c = IdxMap[k].index(Y_pred[bagIdx])
+        kinst = np.argmax(inst_pred[k][:,bagIdx,c])
+        KP_pred[bagIdx] = dataset.playerMap[k][kinst]
+# =============================================================================
+#     for bagIdx in range(len(Y_pred)):
+#         for k in range(len(dataset.k)):
+#             if Y_pred[bagIdx] in dataset.C5k_CLASS[k]:
+#                 c = dataset.C5k_CLASS[k].index(Y_pred[bagIdx])
+#                 kinst = np.argmax(inst_pred[k][:,bagIdx,c])
+#                 #kinst = np.argmax(inst_pred[k][bagIdx,:,c])
+#                 KP_pred[bagIdx] = dataset.playerMap[k][kinst]
+# =============================================================================
                 
     Y_correct = np.equal(Y_pred,np.argmax(test_Y,1))
     bagAccu = np.sum(Y_correct) / Y_pred.size
@@ -68,6 +89,7 @@ def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
     y_correct = np.equal(KP_pred[Y_correct,:],test_label[Y_correct,:])
     
     pAccu = np.sum(y_correct) / KP_pred[Y_correct,:].size
+    #print(y_correct)
     print('bag accuracy %.5f, inst accuracy %.5f' %(bagAccu, pAccu))
     time.sleep(1)
     return bagAccu, pAccu   
