@@ -23,7 +23,8 @@ import net_param
 
 
 datasets = dataset.dataset(FLAGS.traj_file,FLAGS.fold_file,FLAGS.fold,
-                          FLAGS.lstm_max_sequence_length,FLAGS.MAX_X,FLAGS.MAX_Y)
+                          FLAGS.lstm_max_sequence_length,FLAGS.MAX_X,FLAGS.MAX_Y,
+                          FLAGS.frameRate,FLAGS.lstm_input_type)
 #utils.showProperties(datasets)
 
 C53_combs = list(itertools.combinations([0,1,2,3,4],3))
@@ -34,7 +35,7 @@ np_nchoosek = [C53_combs,C52_combs,C55_combs]
 
 tf.reset_default_graph()
 # placeholder list
-p_input = tf.placeholder(tf.float32, [None, FLAGS.lstm_max_sequence_length, FLAGS.lstm_input_dim]) #[batch*5,dynamic step, input_feature]
+p_input = tf.placeholder(tf.float32, [None, FLAGS.lstm_max_sequence_length, datasets.input_feature_dim]) #[batch*5,dynamic step, input_feature]
 seqlen = tf.placeholder(tf.int32,[None])
 p_inputs= tf.transpose(p_input, perm=[1,0,2])
 

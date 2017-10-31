@@ -43,7 +43,8 @@ FLAGS.lstm_type = 'BasicLSTM'
 FLAGS.use_peepholes=True
 FLAGS.lstm_hidden_dim = 256
 FLAGS.lstm_max_sequence_length = 450
-FLAGS.lstm_input_dim = 2
+FLAGS.lstm_input_type = 'P+V' #P
+#FLAGS.lstm_input_dim = 2
 FLAGS.lstm_pretrain_iteration = 500 #5
 FLAGS.lstm_pretrain_batch_size = 2
 FLAGS.lstm_activation = 'softmax'#'relu6' # default tanh
@@ -55,6 +56,7 @@ FLAGS.resetLSTMTempData = False
 
 FLAGS.MAX_X = 326
 FLAGS.MAX_Y = 348
+FLAGS.frameRate = 30
 
 FLAGS.ae_lstm_pretrain_model_dir = '{0}/{4}/hidden{1}_{2}_iter{3}/ae_lstm/model'.format(
         FLAGS.exp_dir,FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,

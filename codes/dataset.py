@@ -12,7 +12,7 @@ import os
 class dataset(object):
     "Merge dataset functions and properties into single class object "
     def __init__(self, traj_file, fold_file, 
-                 fold, max_sequence_length, MAX_X, MAX_Y):
+                 fold, max_sequence_length, MAX_X, MAX_Y,frameRate,input_mode):
         self.traj_file = traj_file
         
         'read datasets'
@@ -33,7 +33,13 @@ class dataset(object):
         
         padS = paddingZeroToTraj(S,max_sequence_length)
         padS = normalize_data(padS,MAX_X,MAX_Y)
-        self.dataTraj = padS
+        padSV= generatePV(padS,frameRate,self.seqLenMatrix)
+        if input_mode == 'P':
+            self.dataTraj = padS
+            self.input_feature_dim = 2
+        elif input_mode == 'P+V':
+            self.dataTraj = padSV
+            self.input_feature_dim = 4
         
         self = load_tacticInfo(self)
     
@@ -68,6 +74,23 @@ def normalize_data(padS,MAX_X,MAX_Y):
     nPadS[:,:,:,1] = padS[:,:,:,1]/MAX_Y
     padS = nPadS    
     return padS
+
+def generatePV(padS,frameRate,seqLenMatrix):
+    padSV = np.zeros([padS.shape[0],padS.shape[1],padS.shape[2],padS.shape[3]*2],dtype=np.float32)
+    padSV[:,:,:,0] = padS[:,:,:,0]
+    padSV[:,:,:,1] = padS[:,:,:,1]
+    
+    rawV = (np.roll(padS,-1,axis=2) - padS)*frameRate
+    for v in range(len(seqLenMatrix)):
+        last_frame_idx = seqLenMatrix[v,0] - 1
+        rawV[:,:,last_frame_idx,:] = rawV[:,:,last_frame_idx-1,:]
+    
+    padSV[:,:,:,2] = rawV[:,:,:,0]
+    padSV[:,:,:,3] = rawV[:,:,:,1]
+
+    return padSV    
+    
+    
 
 def paddingZeroToTraj(S,max_step_num):
     padS = []
