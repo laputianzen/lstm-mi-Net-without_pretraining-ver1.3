@@ -10,7 +10,7 @@ FLAGS = lambda: None
 FLAGS.optimizer = 'RMSProp'
 FLAGS.fold = 0
 FLAGS.root_dir = './'
-FLAGS.exp_dir = FLAGS.root_dir + 'experiment/' + 'fold{0}/'.format(FLAGS.fold+1) + FLAGS.optimizer  
+FLAGS.exp_dir = FLAGS.root_dir + 'experiment/' + FLAGS.optimizer  
 FLAGS.flush_secs  = 120
 
 FLAGS.auto_load_ckpt = True
@@ -26,7 +26,6 @@ FLAGS.save_gradints = True
 
 FLAGS.miNet_last_hidden_dim = 16
 FLAGS.miNet_num_hidden_layer = 1
-FLAGS.pretraining_epochs = 600#600
 FLAGS.finetune_batch_size = 2
 FLAGS.finetuning_epochs = 10
 FLAGS.finetuning_summary_step = 10
@@ -34,8 +33,8 @@ FLAGS.finetuning_saving_epochs = 1
 FLAGS.fine_tune_resume = True
 FLAGS.miNet_common_acfun = 'sigmoid'
 
-FLAGS.pre_layer_learning_rate = []   
 FLAGS.supervised_learning_rate = 0.01
+FLAGS.supervised_weight_decay = 'constant' #exponential, piecewise, polynomial
 FLAGS.keep_prob = 1.0    
 FLAGS.decode_beta = 0.1
 
@@ -45,53 +44,28 @@ FLAGS.lstm_hidden_dim = 256
 FLAGS.lstm_max_sequence_length = 450
 FLAGS.lstm_input_type = 'P+V' #P
 #FLAGS.lstm_input_dim = 2
-FLAGS.lstm_pretrain_iteration = 500 #5
-FLAGS.lstm_pretrain_batch_size = 2
 FLAGS.lstm_activation = 'softmax'#'relu6' # default tanh
-FLAGS.lstm_lr = 0.001
 
 FLAGS.resetLSTMTempData = False
-#FLAGS.lstm.activation_lstm = tf.nn.softmax#tf.nn.relu6
-#FLAGS.lstm.optimizer = tf.train.RMSPropOptimizer(0.003)
+
 
 FLAGS.MAX_X = 326
 FLAGS.MAX_Y = 348
 FLAGS.frameRate = 30
 
-FLAGS.ae_lstm_pretrain_model_dir = '{0}/{4}/hidden{1}_{2}_iter{3}/ae_lstm/model'.format(
-        FLAGS.exp_dir,FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,
-        FLAGS.lstm_pretrain_iteration, FLAGS.lstm_type)
 
-FLAGS.ae_lstm_summary_dir = '{0}/{4}/hidden{1}_{2}_iter{3}/ae_lstm/summaries'.format(
-        FLAGS.exp_dir,FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,
-        FLAGS.lstm_pretrain_iteration, FLAGS.lstm_type)
-
-FLAGS.ae_lstm_dec_dir = '{0}/{4}/hidden{1}_{2}_iter{3}/ae_lstm//decode'.format(
-        FLAGS.exp_dir,FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,
-        FLAGS.lstm_pretrain_iteration, FLAGS.lstm_type)
-
-FLAGS._intermediate_feature_dir = FLAGS.ae_lstm_pretrain_model_dir   + '/tempData' 
-
-FLAGS.miNet_pretrain_dir = '{0}/{4}/hidden{1}_{2}_iter{3}/miNet_h{5}L{6}_iter{7}_{8}'.format(
-        FLAGS.exp_dir,FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,
-        FLAGS.lstm_pretrain_iteration, FLAGS.lstm_type,
+FLAGS.miNet_train_dir = '{0}_lr{1}_{2}/{3}_hidden{4}_{5}_{6}/miNet_h{7}L{8}_iter{9}_{10}_keepprob{11}/decode_beta{12}/fold{13}'.format(
+        FLAGS.exp_dir,FLAGS.supervised_learning_rate,FLAGS.supervised_weight_decay,
+        FLAGS.lstm_type, FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,FLAGS.lstm_input_type,
         FLAGS.miNet_last_hidden_dim,FLAGS.miNet_num_hidden_layer,
-        FLAGS.pretraining_epochs,FLAGS.miNet_common_acfun)
+        FLAGS.finetuning_epochs,FLAGS.miNet_common_acfun,FLAGS.keep_prob,FLAGS.decode_beta,FLAGS.fold+1)
 
-#==============================================================================
-# FLAGS.miNet_fine_tune_dir = '{0}/{4}/hidden{1}_{2}_iter{3}/miNet_h{5}L{6}_iter{7}_{8}/fine{9}'.format(
-#         FLAGS.exp_dir,FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,
-#         FLAGS.lstm_pretrain_iteration, FLAGS.lstm_type,
-#         FLAGS.miNet_last_hidden_dim,FLAGS.miNet_num_hidden_layer,
-#         FLAGS.pretraining_epochs,FLAGS.miNet_common_acfun,
-#         FLAGS.finetuning_epochs)
-#==============================================================================
 
-FLAGS.miNet_pretrain_model_dir = FLAGS.miNet_pretrain_dir + '/model'
-FLAGS.miNet_pretrain_summary_dir = FLAGS.miNet_pretrain_dir + '/summaries'
-FLAGS._confusion_dir = FLAGS.miNet_pretrain_dir + '/confusionMatrix'
-FLAGS._ipython_console_txt = FLAGS.miNet_pretrain_dir + '/log.txt'
-FLAGS._logit_txt = FLAGS.miNet_pretrain_dir + '/logits'
+FLAGS.miNet_train_model_dir = FLAGS.miNet_train_dir + '/model'
+FLAGS.miNet_train_summary_dir = FLAGS.miNet_train_dir + '/summaries'
+FLAGS._confusion_dir = FLAGS.miNet_train_dir + '/confusionMatrix'
+FLAGS._ipython_console_txt = FLAGS.miNet_train_dir + '/log.txt'
+FLAGS._logit_txt = FLAGS.miNet_train_dir + '/logits'
 FLAGS._train_logit_txt = FLAGS._logit_txt + '/train'
 FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
 

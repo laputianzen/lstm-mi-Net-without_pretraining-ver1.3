@@ -103,8 +103,6 @@ pretrain_shape = net_param.createPretrainShape(FLAGS.lstm_hidden_dim,
                                                FLAGS.miNet_num_hidden_layer)
 print(pretrain_shape)  
                     
-for h in range(FLAGS.miNet_num_hidden_layer):
-    FLAGS.pre_layer_learning_rate.extend([0.001])#GD[0.01,0.01]
 
 instNet_shape = np.array([np.append(pretrain_shape,len(datasets.C5k_CLASS[0])),
                           np.append(pretrain_shape,len(datasets.C5k_CLASS[1])),

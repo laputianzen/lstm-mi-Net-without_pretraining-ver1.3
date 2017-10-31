@@ -447,9 +447,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                    test_tactic_score_op,
                                    test_x_entropy_op,test_aelstm_op,
                                    test_loss_op,test_accu_op,test_pAccu_op])#    
-        summary_writer = tf.summary.FileWriter(pjoin(FLAGS.miNet_pretrain_summary_dir,
-                                                      'fine_tuning_iter{0}'.format(FLAGS.finetuning_epochs)),
-                                                tf.get_default_graph(),flush_secs=FLAGS.flush_secs)
+        
+        summary_writer = tf.summary.FileWriter(FLAGS.miNet_train_summary_dir,
+                                           tf.get_default_graph(),flush_secs=FLAGS.flush_secs)
         vars_to_init = []
         # initialize lstm variables         
         vars_to_init.extend(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='encoder'))
@@ -478,7 +478,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         #optim_vars = [var for var in tf.global_variables() if (FLAGS.optimizer in var.name)]
         #learning_rate_var = [var for var in tf.global_variables() if ('learning_rate' in var.name)]
         
-        log_path = FLAGS.miNet_pretrain_model_dir + '/fine_tune/'
+        log_path = FLAGS.miNet_train_model_dir #+ '/fine_tune/'
         if not os.path.exists(log_path):
             os.makedirs(log_path)
         model_ckpt= tf.train.latest_checkpoint(log_path)
