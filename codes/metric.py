@@ -108,19 +108,24 @@ def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
     return bagAccu, pAccu   
    
         
-def ConfusionMatrix(logits,labels,dataset,filename):
+def ConfusionMatrix(logits,labels,dataset,filename,text_file):
     C = np.zeros((len(dataset.tacticName),len(dataset.tacticName)))
     CM = C    
-    flattenC5k = [val for sublist in dataset.C5k_CLASS for val in sublist]
+    #flattenC5k = [val for sublist in dataset.C5k_CLASS for val in sublist]
     for bagIdx in range(len(labels)):
         gt = np.argmax(labels[bagIdx])
         #pred = np.argmax(logits[bagIdx])
         pred = logits[bagIdx]
-        new_gt = flattenC5k[gt]
-        new_pred= flattenC5k[pred]
-        C[new_gt,new_pred] = C[new_gt,new_pred] + 1
+        C[gt,pred] = C[gt,pred] + 1
+        ''' convert tactic from network order to dataset order '''
+# =============================================================================
+#         new_gt = flattenC5k[gt]
+#         new_pred= flattenC5k[pred]
+#         C[new_gt,new_pred] = C[new_gt,new_pred] + 1
+# =============================================================================
         
     print(C)
+    text_file.write(np.array2string(C))
     cumC = np.sum(C,axis=1)
     
     for p in range(len(C)):

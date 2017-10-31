@@ -680,7 +680,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 return
             
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,actual_epochs)
-            metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)
+            metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename,text_file)
             
             text_file.flush()
             #print("")
@@ -740,7 +740,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test_final.csv'.format(fold,actual_epochs)
         else:
             filename = None
-        metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename)        
+        metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename,text_file)        
  
         summary_writer.close()           
         text_file.close()
