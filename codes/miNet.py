@@ -624,7 +624,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                     
                     np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._train_logit_txt,actual_epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
                 
-            if epochs % FLAGS.finetuning_saving_epochs == 0:
+            if actual_epochs % FLAGS.finetuning_saving_epochs == 0:
                 save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)
                 print("Model saved in file: %s" % save_path)
                 text_file.write('Model saved in file: %s\n'  % save_path)
@@ -671,11 +671,12 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #                                       y_placeholder_correctY,y_correct,
 #                                       y_accu],feed_dict)
 # =============================================================================
-            print('tf test inst accuracy %.5f' %(tf_pAccu))
+            
             
             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
             text_file.write('test bag accuracy %.5f, test inst accuracy %.5f\n\n' %(bagAccu, pAccu))
             if np.abs(pAccu - tf_pAccu) > 1e-6: #or tf_pAccu == 1.0:
+                print('tf test inst accuracy %.5f' %(tf_pAccu))
                 print('tf and np version of pAccu is conflicted!')
                 print('tf result(correct_prediction,y_correctY,y_placeholder_correctY,y_correct)')
 # =============================================================================
