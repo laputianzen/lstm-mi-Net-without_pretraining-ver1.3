@@ -697,12 +697,13 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 selectIndex = np.arange(num_train)
                 feed_dict = fetch_data(train_data,selectIndex,False)
                 dec_val = run_step(sess,dec_output,feed_dict)
-            
+                dec_val = dec_val[0]
                 LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
                                              FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
                 selectIndex = np.arange(num_test)
                 feed_dict = fetch_data(test_data,selectIndex,False)
                 dec_val = run_step(sess,dec_output,feed_dict)
+                dec_val = dec_val[0]
             
                 LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
                                              FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
@@ -773,13 +774,13 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         selectIndex = np.arange(num_train)
         feed_dict = fetch_data(train_data,selectIndex,False)
         dec_val = run_step(sess,dec_output,feed_dict)
-    
+        dec_val = dec_val[0]
         LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
                                      FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
         selectIndex = np.arange(num_test)
         feed_dict = fetch_data(test_data,selectIndex,False)
         dec_val = run_step(sess,dec_output,feed_dict)
-    
+        dec_val = dec_val[0]
         LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
                                      FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir)
         print('finish saving decode result!!')
