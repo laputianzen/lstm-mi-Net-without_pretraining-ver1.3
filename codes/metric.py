@@ -110,28 +110,35 @@ def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
         
 def ConfusionMatrix(logits,labels,dataset,filename,text_file):
     C = np.zeros((len(dataset.tacticName),len(dataset.tacticName)))
-    CM = C    
-    #flattenC5k = [val for sublist in dataset.C5k_CLASS for val in sublist]
+    CM = np.zeros((len(dataset.tacticName)+1,len(dataset.tacticName)+1))
+    ''' convert tactic from network order to dataset order '''
+    reorder = np.concatenate(dataset.C5k_CLASS).ravel().tolist()
+    orderTactic = [dataset.tacticName[i] for i in reorder]
+    #orderTactic = ['F23','EV','HK','PD','RB','WS','SP','WW','PT','WV']
+    tacticNum = len(orderTactic)
     for bagIdx in range(len(labels)):
         gt = np.argmax(labels[bagIdx])
-        #pred = np.argmax(logits[bagIdx])
-        pred = logits[bagIdx]
-        C[gt,pred] = C[gt,pred] + 1
-        ''' convert tactic from network order to dataset order '''
-# =============================================================================
-#         new_gt = flattenC5k[gt]
-#         new_pred= flattenC5k[pred]
-#         C[new_gt,new_pred] = C[new_gt,new_pred] + 1
-# =============================================================================
-        
-    print(C)
-    text_file.write(np.array2string(C))
-    cumC = np.sum(C,axis=1)
+        pred = np.argmax(logits[bagIdx])
+        #pred = logits[bagIdx]
+        C[gt,pred] = C[gt,pred] + 1    
+
+    gtC = np.sum(C,axis=1)
+    predC=np.sum(C,axis=0)
+    TP = np.diag(C)
+    precision = TP/predC  
     
-    for p in range(len(C)):
-        CM[p,:] = np.divide(C[p,:],cumC[p])
+    recall = TP/gtC
+    CM[0:tacticNum,0:tacticNum] = C
+    CM[tacticNum,0:tacticNum] = precision
+    CM[0:tacticNum,tacticNum] = recall.T
+    CM[tacticNum,tacticNum] = np.sum(TP)/np.sum(C)*100
+    rowIdx = orderTactic + ['Precision']
+    colIdx = orderTactic + ['Recall']
+    df = pd.DataFrame(CM,index=rowIdx,columns=colIdx)
     
-    df = pd.DataFrame(CM)
-    df.round(3)
+    print(df.round(3))
+    text_file.write(df.round(3).to_string())
+    #print(C)
+    #text_file.write(np.array2string(C))
     if filename is not None:
-        df.to_csv(filename)
+        df.round(3).to_csv(filename,na_rep='NaN')     
