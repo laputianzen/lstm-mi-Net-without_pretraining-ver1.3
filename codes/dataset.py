@@ -11,8 +11,8 @@ import os
 
 class dataset(object):
     "Merge dataset functions and properties into single class object "
-    def __init__(self, traj_file, fold_file, 
-                 fold, max_sequence_length, MAX_X, MAX_Y,frameRate,input_mode):
+    def __init__(self, traj_file, fold_file, tactic_file,
+                 fold, max_sequence_length,input_mode):
         self.traj_file = traj_file
         
         'read datasets'
@@ -21,6 +21,10 @@ class dataset(object):
         self.numVid = numVid
         self.dataTrajOrigin = S
 
+        self.MAX_X = 326
+        self.MAX_Y = 348
+        self.frameRate = 30
+        
         'load 5-fold cross-validation'
         testIdx_fold, num_test, trainIdx_fold, num_train = load_fold(fold_file,fold,numVid)
         self.testIdx = testIdx_fold

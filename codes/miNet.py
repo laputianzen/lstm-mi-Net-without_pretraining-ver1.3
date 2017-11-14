@@ -696,7 +696,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 dec_val = run_step(sess,dec_output,feed_dict)
                 dec_val = dec_val[0]
                 LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
-                                             FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir,
+                                             dataset.MAX_X,dataset.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir,
                                              dataset.trainIdx)
 
                 selectIndex = np.arange(num_test)
@@ -705,60 +705,29 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 dec_val = dec_val[0]
             
                 LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
-                                             FLAGS.MAX_X,FLAGS.MAX_Y,actual_epochs,FLAGS._dec_output_test_dir,
+                                             dataset.MAX_X,dataset.MAX_Y,actual_epochs,FLAGS._dec_output_test_dir,
                                              dataset.testIdx)
                 print('finish saving decode result!!')
-            #print("")
 
-            #summary_str = sess.run(summary_op, feed_dict=feed_dict)
-            #summary_writer.add_summary(summary_str, step)
-            #summary_img_str = sess.run(
-            #    tf.image_summary("training_images",
-            #                tf.reshape(input_pl,
-            #                        (FLAGS.batch_size,
-            #                         FLAGS.image_size,
-            #                         FLAGS.image_size, 1)),
-            #             max_images=FLAGS.batch_size),
-            #    feed_dict=feed_dict
-            #)
-            #summary_writer.add_summary(summary_img_str)
          
         ''' for final epochs files doesn't exist '''           
-# =============================================================================
-#         if max_epochs is not 0:           
-#             save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)#global_step)
-#             print("Model saved in file: %s" % save_path)                     
-# =============================================================================
         
         ''' evaluate test performance after fininshing training (need add training performance)'''   
         selectIndex = np.arange(num_test)
         feed_dict = fetch_data(test_data,selectIndex,False)
-        bagAccu, Y_pred, inst_pred = run_step(sess,[accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
+        bagAccu, Y_pred, inst_pred, y_accu_tf, player_pred = run_step(sess,[accu, Y_predmap, instOuts,y_accu,y],feed_dict)
 
-# =============================================================================
-#         ''' calculate instance accuracy (not used afterward)'''
-#         test_target_feed = test_data['label']
-#         inst_pred_matrix = np.empty([test_target_feed.shape[0],max(num_inst),test_target_feed.shape[1]])
-#         inst_pred_matrix.fill(np.nan)
-#         for test_id in range(test_target_feed.shape[0]):
-#             for k in range(len(dataset.C5k_CLASS)):
-#                 for c in range(len(dataset.C5k_CLASS[k])):
-#                     realTacticID = dataset.C5k_CLASS[k][c]
-#                     inst_pred_matrix[test_id,:,realTacticID] = np.exp(inst_pred[k][:,test_id,c])
-#                     
-#         test_inst_label = np.empty([test_target_feed.shape[0],max(num_inst)])
-#         test_inst_label.fill(np.nan)
-#         for test_id in range(len(test_multi_label)):
-#             k = np.sum(test_multi_label[test_id,:])
-#             k_idx = dataset.k.index(k)
-#             inst_gt = dataset.playerMap[k_idx].index(test_multi_label[test_id,:].tolist())
-#             test_inst_label[test_id,inst_gt] = 1.0
-# =============================================================================
         if max_epochs is not 0:
             print('\nAfter %d Epochs: accuracy = %.5f'  % (actual_epochs, bagAccu))
         else:
             print('\nLoad/Resume Model: accuracy = %.5f'  % (bagAccu))
-        metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
+        #metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
+        text_file = 'keyplayer_result.txt'
+        metric.keyPlayerResult(Y_pred,test_multi_Y,player_pred,dataset,selectIndex,text_file)
+        #y_accu_Y_correct_per_tactic, avg_y_accu_Y_correct_per_tactic = metric.calculatePAccu(player_pred,test_multi_label,Y_pred,test_multi_Y)
+        #print('y accu per tactic:', y_accu_Y_correct_per_tactic)
+        #print('avg y accu per tactic:', avg_y_accu_Y_correct_per_tactic)
+        #print('avg y accu:', y_accu_tf)
         time.sleep(0.5)
         
         

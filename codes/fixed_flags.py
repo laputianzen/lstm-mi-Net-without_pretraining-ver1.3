@@ -50,9 +50,9 @@ FLAGS.lstm_activation = 'softmax'#'relu6' # default tanh
 FLAGS.resetLSTMTempData = False
 
 
-FLAGS.MAX_X = 326
-FLAGS.MAX_Y = 348
-FLAGS.frameRate = 30
+#FLAGS.MAX_X = 326
+#FLAGS.MAX_Y = 348
+#FLAGS.frameRate = 30
 
 
 FLAGS.miNet_train_dir = '{0}_lr{1}_{2}/{3}_hidden{4}_{5}_{6}/miNet_h{7}L{8}_iter{9}_{10}_keepprob{11}/decode_beta{12}/fold{13}'.format(

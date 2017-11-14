@@ -21,10 +21,8 @@ import dataset
 from nchoosek_Net import nchoosek_grouping
 import net_param
 
-
-datasets = dataset.dataset(FLAGS.traj_file,FLAGS.fold_file,FLAGS.fold,
-                          FLAGS.lstm_max_sequence_length,FLAGS.MAX_X,FLAGS.MAX_Y,
-                          FLAGS.frameRate,FLAGS.lstm_input_type)
+datasets = dataset.dataset(FLAGS.traj_file,FLAGS.fold_file,FLAGS.tactic_file,FLAGS.fold,
+                           FLAGS.lstm_max_sequence_length,FLAGS.lstm_input_type)
 #utils.showProperties(datasets)
 
 C53_combs = list(itertools.combinations([0,1,2,3,4],3))
