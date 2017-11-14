@@ -48,6 +48,8 @@ if FLAGS.lstm_type is 'LSTM':
     cell = lstm_cell_op(FLAGS.lstm_hidden_dim, activation=activation_fn, use_peepholes=FLAGS.use_peepholes)
 else:
     cell = lstm_cell_op(FLAGS.lstm_hidden_dim, activation=activation_fn)
+
+cell = tf.contrib.rnn.OutputProjectionWrapper(cell,FLAGS.lstm_hidden_dim,activation=tf.nn.softmax) 
     
 optimizer = utils.get_optimizer(FLAGS.optimizer)
 with tf.name_scope("ae_lstm"):

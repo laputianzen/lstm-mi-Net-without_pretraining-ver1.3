@@ -575,7 +575,26 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                        y_placeholder: targetP_feed,
                        keep_prob_: keep_prob}
             return feed_dict
-        
+        def generate_result(data,num_data,accus_merged,phase,count):
+            selectIndex = np.arange(num_data) 
+            feed_dict = fetch_data(data,selectIndex,False)            
+            loss_value, bagAccu, pAccu, Y_pred = run_step(sess,[loss, accu, y_accu, Y_predmap],feed_dict)
+            utils.printLog(FLAGS._ipython_console_txt,'')
+            utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: %s loss = %.5f ' % (actual_epochs, phase, loss_value))
+            utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: %s accuracy = %.5f '  % (actual_epochs, phase, bagAccu))
+            #bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,batch_multi_Y,batch_multi_KPlabel,dataset)
+            utils.printLog(FLAGS._ipython_console_txt,'bag accuracy %.5f, inst accuracy %.5f' %(bagAccu, pAccu))
+
+            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
+            np.savetxt('{}/logit{}-{}-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs,phase),Y_scaled,fmt='%.4f', delimiter=' ')
+            np.savetxt('{}/logit{}-{}-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs,phase),Y_unscaled,fmt='%.4f', delimiter=' ')            
+ 
+            summary_str = run_step(sess,accus_merged,feed_dict)
+            summary_writer.add_summary(summary_str, count)                 
+            
+            filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_{2}.csv'.format(fold,actual_epochs,phase)
+            Y_label = data['label']
+            metric.ConfusionMatrix(Y_pred,Y_label,dataset,filename,FLAGS._ipython_console_txt)
 
         count = 0
         for epochs in range(max_epochs):
@@ -631,62 +650,53 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
 
             ''' evaluate test performance after one epoch (need add training performance)'''
+            generate_result(train_data,num_train,train_accus_merged,'train',count)
+            generate_result(test_data,num_test,test_merged,'test',count)
             # train data result 
-            selectIndex = np.arange(num_train) 
-            feed_dict = fetch_data(train_data,selectIndex,False)            
-            loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
-            print('Epochs %d: train loss = %.5f '  % (actual_epochs, loss_value)) 
-            print('Epochs %d: train accuracy = %.5f '  % (actual_epochs, bagAccu))
-            text_file.write('Epochs %d: train loss = %.5f\n'  % (actual_epochs, loss_value))
-            text_file.write('Epochs %d: train accuracy = %.5f\n'  % (actual_epochs, bagAccu))
-            Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
-            np.savetxt('{}/logit{}-train-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
-            np.savetxt('{}/logit{}-train-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_unscaled,fmt='%.4f', delimiter=' ')            
-            summary_str = run_step(sess,train_accus_merged,feed_dict)
-            summary_writer.add_summary(summary_str, count)
-            
-            bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,batch_multi_Y,batch_multi_KPlabel,dataset)
-            text_file.write('train bag accuracy %.5f, train inst accuracy %.5f\n\n' %(bagAccu, pAccu))
-            # test data result
-            selectIndex = np.arange(num_test)
-            feed_dict = fetch_data(test_data,selectIndex,False)
-            loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, tf.argmax(tf.nn.softmax(Y),axis=1), instOuts],feed_dict)
-            print('')
-            print('Epochs %d: test loss = %.5f '  % (actual_epochs, loss_value)) 
-            print('Epochs %d: test accuracy = %.5f '  % (actual_epochs, bagAccu))
-            text_file.write('Epochs %d: test loss = %.5f\n'  % (actual_epochs, loss_value))
-            text_file.write('Epochs %d: test accuracy = %.5f\n'  % (actual_epochs, bagAccu))
-            
-            ''' save summaries of test data '''
-            summary_str = run_step(sess,test_merged,feed_dict)
-            summary_writer.add_summary(summary_str, count)     
-            
-            Y_scaled, Y_unscaled= run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
-            np.savetxt('{}/logit{}-test-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
-            np.savetxt('{}/logit{}-test-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_unscaled,fmt='%.4f', delimiter=' ')
-            tf_pAccu = run_step(sess,y_accu,feed_dict)
 # =============================================================================
-#             tf_Ycorrect, tf_ycY, tf_ycYpl, tf_ycorrect, tf_pAccu = run_step(sess,[correct_prediction,y_correctY,
-#                                       y_placeholder_correctY,y_correct,
-#                                       y_accu],feed_dict)
+#             selectIndex = np.arange(num_train) 
+#             feed_dict = fetch_data(train_data,selectIndex,False)            
+#             loss_value,bagAccu, pAccu = run_step(sess,[loss, accu, y_accu],feed_dict)
+#             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: train loss = %.5f ' % (actual_epochs, loss_value))
+#             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: train accuracy = %.5f '  % (actual_epochs, bagAccu))
+#             #bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,batch_multi_Y,batch_multi_KPlabel,dataset)
+#             utils.printLog(FLAGS._ipython_console_txt,'bag accuracy %.5f, inst accuracy %.5f' %(bagAccu, pAccu))
+# 
+#             Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict) 
+#             np.savetxt('{}/logit{}-train-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+#             np.savetxt('{}/logit{}-train-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_unscaled,fmt='%.4f', delimiter=' ')            
+#             
+#             summary_str = run_step(sess,train_accus_merged,feed_dict)
+#             summary_writer.add_summary(summary_str, count)
+#         
+# 
+#             # test data result
+#             selectIndex = np.arange(num_test)
+#             feed_dict = fetch_data(test_data,selectIndex,False)
+#             loss_value,bagAccu, Y_pred, inst_pred = run_step(sess,[loss, accu, Y_predmap, instOuts],feed_dict)
+#             utils.printLog(FLAGS._ipython_console_txt,'')
+#             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: test loss = %.5f '  % (actual_epochs, loss_value))
+#             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: test accuracy = %.5f '  % (actual_epochs, bagAccu))
+#         
+#             ''' save summaries of test data '''
+#             summary_str = run_step(sess,test_merged,feed_dict)
+#             summary_writer.add_summary(summary_str, count)     
+#         
+#             Y_scaled, Y_unscaled= run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
+#             np.savetxt('{}/logit{}-test-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
+#             np.savetxt('{}/logit{}-test-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_unscaled,fmt='%.4f', delimiter=' ')
+#                                 
+#             bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
+#             utils.printLog(FLAGS._ipython_console_txt,'bag accuracy %.5f, inst accuracy %.5f' %(bagAccu, pAccu))
+# 
+#             tf_pAccu = run_step(sess,y_accu,feed_dict)
+#             if np.abs(pAccu - tf_pAccu) > 1e-6: #or tf_pAccu == 1.0:
+#                 print('tf test inst accuracy %.5f' %(tf_pAccu))
+#                 print('tf and np version of pAccu is conflicted!')
+#                 return
 # =============================================================================
-            
-            
-            bagAccu,pAccu = metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
-            text_file.write('test bag accuracy %.5f, test inst accuracy %.5f\n\n' %(bagAccu, pAccu))
-            if np.abs(pAccu - tf_pAccu) > 1e-6: #or tf_pAccu == 1.0:
-                print('tf test inst accuracy %.5f' %(tf_pAccu))
-                print('tf and np version of pAccu is conflicted!')
-                print('tf result(correct_prediction,y_correctY,y_placeholder_correctY,y_correct)')
-# =============================================================================
-#                 print(tf_Ycorrect, tf_ycY, tf_ycYpl, tf_ycorrect)
-# =============================================================================
-                #print('np result(Y_pred,inst_pred,test_multi_Y,test_multi_label)')
-                #print(Y_pred,inst_pred,test_multi_Y,test_multi_label)
-                return
-            
-            filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,actual_epochs)
-            metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename,text_file)
+        
+
             
             
             ''' save decode result '''
