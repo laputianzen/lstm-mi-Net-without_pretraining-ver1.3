@@ -8,6 +8,7 @@ Created on Wed Aug 30 22:25:10 2017
 import numpy as np
 import scipy.io
 import os
+import matplotlib.pyplot as plt
 
 class dataset(object):
     "Merge dataset functions and properties into single class object "
@@ -36,8 +37,9 @@ class dataset(object):
         self.seqLenMatrix = generate_seqLenMatrix(S,numPlayer)
         
         padS = paddingZeroToTraj(S,max_sequence_length)
-        padS = normalize_data(padS,MAX_X,MAX_Y)
-        padSV= generatePV(padS,frameRate,self.seqLenMatrix)
+        padS = rescale_position(padS,self.MAX_X,self.MAX_Y,self.seqLenMatrix)
+        #padS = normalize_data(padS,MAX_X,MAX_Y)
+        padSV= generatePV(padS,self.frameRate,self.seqLenMatrix)
         if input_mode == 'P':
             self.dataTraj = padS
             self.input_feature_dim = 2
@@ -72,29 +74,77 @@ def generate_seqLenMatrix(S,numPlayer):
     seqLenMatrix= np.stack([seqLen,]*numPlayer,axis=1)
     return seqLenMatrix
 
+def rescale_position(padS,MAX_X,MAX_Y,seqLenMatrix,inv=False):
+    nPadS = np.zeros_like(padS,dtype=np.float32)
+    for b in range(len(padS)):
+        if not inv:
+            nX = padS[b,:,:,0]/MAX_X
+            nY = padS[b,:,:,1]/MAX_Y
+            nX = 2*nX-1
+            nY = 2*nY-1
+        else:
+            nX = (padS[b,:,:,0] + 1)/2
+            nY = (padS[b,:,:,1] + 1)/2
+            nX = nX*MAX_X
+            nY = nY*MAX_Y
+        nPadS[b,:,0:seqLenMatrix[b,0],0] = nX[:,0:seqLenMatrix[b,0]]
+        nPadS[b,:,0:seqLenMatrix[b,0],1] = nY[:,0:seqLenMatrix[b,0]]
+    return nPadS    
+
 def normalize_data(padS,MAX_X,MAX_Y):
     nPadS = np.zeros_like(padS,dtype=np.float32) #force cast padS into np.float32
     nPadS[:,:,:,0] = padS[:,:,:,0]/MAX_X
     nPadS[:,:,:,1] = padS[:,:,:,1]/MAX_Y
-    padS = nPadS    
+    # from [0,1] to [-1,1]
+    padS = nPadS   
     return padS
 
 def generatePV(padS,frameRate,seqLenMatrix):
     padSV = np.zeros([padS.shape[0],padS.shape[1],padS.shape[2],padS.shape[3]*2],dtype=np.float32)
     padSV[:,:,:,0] = padS[:,:,:,0]
     padSV[:,:,:,1] = padS[:,:,:,1]
+    showHistogram(padS,50,seqLenMatrix)
     
     rawV = (np.roll(padS,-1,axis=2) - padS)*frameRate
+    # set final step to 0
+    rawV[:,:,-1,:] = 0
     for v in range(len(seqLenMatrix)):
         last_frame_idx = seqLenMatrix[v,0] - 1
         rawV[:,:,last_frame_idx,:] = rawV[:,:,last_frame_idx-1,:]
-    
+
     padSV[:,:,:,2] = rawV[:,:,:,0]
     padSV[:,:,:,3] = rawV[:,:,:,1]
+    showHistogram(rawV,50,seqLenMatrix)
+    #nV = standardize_velocity(rawV,seqLenMatrix)
+    #showHistogram(nV,50,seqLenMatrix)
+    #padSV[:,:,:,2] = nV[:,:,:,0]
+    #padSV[:,:,:,3] = nV[:,:,:,1]  
 
     return padSV    
     
+def standardize_velocity(rawV,seqLenMatrix): #mean is 0
+    nPadV= np.zeros_like(rawV,dtype=np.float32)
+    num_valid_step = np.sum(seqLenMatrix)
+    Vx_std = np.sqrt(np.sum(abs(rawV[:,:,:,0])**2)/num_valid_step)
+    Vy_std = np.sqrt(np.sum(abs(rawV[:,:,:,1])**2)/num_valid_step)
+    #Vx_std = np.sqrt(np.mean(abs(rawV[:,:,:,0])**2))
+    #Vy_std = np.sqrt(np.mean(abs(rawV[:,:,:,1])**2))
+    nPadV[:,:,:,0] = rawV[:,:,:,0]/Vx_std
+    nPadV[:,:,:,1] = rawV[:,:,:,1]/Vy_std
     
+    return nPadV
+
+def showHistogram(x,num_bins,seqLenMatrix):
+    total_step = x.shape[0]*x.shape[1]*x.shape[2]*x.shape[3]
+    num_valid_step = np.sum(seqLenMatrix)*x.shape[3]
+    padding_step = total_step - num_valid_step
+    hist, bins = np.histogram(x, bins=num_bins)
+    index0 = np.argmax(hist)
+    hist[index0] = hist[index0] - padding_step
+    width = 0.7 * (bins[1] - bins[0])
+    center = (bins[:-1] + bins[1:]) / 2
+    plt.bar(center, hist, align='center', width=width)
+    plt.show()
 
 def paddingZeroToTraj(S,max_step_num):
     padS = []

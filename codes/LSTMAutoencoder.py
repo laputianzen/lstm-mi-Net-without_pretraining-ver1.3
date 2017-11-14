@@ -13,7 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import pickle as pl
 
 import utils
-
+import dataset
 """
 Future : Modularization
 """
@@ -347,22 +347,38 @@ def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir,orginVideoIdx):
     half_court = img[:,325:651,:]
     r, c = np.ogrid[0:half_court.shape[0], 0:half_court.shape[1]]
     #save_dir = 'decode'
+    seqLenMatrix = np.reshape(seqlen,(-1,num_player))
+    rev_Spred = dataset.rescale_position(np.reshape(Spred,(-1,num_player,Spred.shape[1],Spred.shape[2])),MAX_X,MAX_Y,seqLenMatrix,inv=True)
+    rev_Sgt   = dataset.rescale_position(np.reshape(Sgt,(-1,num_player,Sgt.shape[1],Sgt.shape[2])),MAX_X,MAX_Y,seqLenMatrix,inv=True)
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
     for v in range(int(Sgt.shape[0]/num_player)):       
         t = np.arange(seqlen[v*num_player])
         hcplot = plt.imshow(half_court)
-        plt.plot(Sgt[0+v*num_player,t,0]*MAX_X,Sgt[0+v*num_player,t,1]*MAX_Y,'r-', label='p1')
-        plt.plot(Sgt[1+v*num_player,t,0]*MAX_X,Sgt[1+v*num_player,t,1]*MAX_Y,'g-', label='p2')
-        plt.plot(Sgt[2+v*num_player,t,0]*MAX_X,Sgt[2+v*num_player,t,1]*MAX_Y,'b-', label='p3')
-        plt.plot(Sgt[3+v*num_player,t,0]*MAX_X,Sgt[3+v*num_player,t,1]*MAX_Y,'y-', label='p4')
-        plt.plot(Sgt[4+v*num_player,t,0]*MAX_X,Sgt[4+v*num_player,t,1]*MAX_Y,'c-', label='p5')
-
-        plt.plot(Spred[0+v*num_player,t,0]*MAX_X,Spred[0+v*num_player,t,1]*MAX_Y,'r:')
-        plt.plot(Spred[1+v*num_player,t,0]*MAX_X,Spred[1+v*num_player,t,1]*MAX_Y,'g:')
-        plt.plot(Spred[2+v*num_player,t,0]*MAX_X,Spred[2+v*num_player,t,1]*MAX_Y,'b:')
-        plt.plot(Spred[3+v*num_player,t,0]*MAX_X,Spred[3+v*num_player,t,1]*MAX_Y,'y:')
-        plt.plot(Spred[4+v*num_player,t,0]*MAX_X,Spred[4+v*num_player,t,1]*MAX_Y,'c:')
+        plt.plot(rev_Sgt[v,0,t,0],rev_Sgt[v,0,t,1],'r-', label='p1')
+        plt.plot(rev_Sgt[v,1,t,0],rev_Sgt[v,1,t,1],'g-', label='p2')
+        plt.plot(rev_Sgt[v,2,t,0],rev_Sgt[v,2,t,1],'b-', label='p3')
+        plt.plot(rev_Sgt[v,3,t,0],rev_Sgt[v,3,t,1],'y-', label='p4')
+        plt.plot(rev_Sgt[v,4,t,0],rev_Sgt[v,4,t,1],'c-', label='p5')
+        
+        plt.plot(rev_Spred[v,0,t,0],rev_Spred[v,0,t,1],'r-', label='p1')
+        plt.plot(rev_Spred[v,1,t,0],rev_Spred[v,1,t,1],'g-', label='p2')
+        plt.plot(rev_Spred[v,2,t,0],rev_Spred[v,2,t,1],'b-', label='p3')
+        plt.plot(rev_Spred[v,3,t,0],rev_Spred[v,3,t,1],'y-', label='p4')
+        plt.plot(rev_Spred[v,4,t,0],rev_Spred[v,4,t,1],'c-', label='p5')
+# =============================================================================
+#         plt.plot(Sgt[0+v*num_player,t,0]*MAX_X,Sgt[0+v*num_player,t,1]*MAX_Y,'r-', label='p1')
+#         plt.plot(Sgt[1+v*num_player,t,0]*MAX_X,Sgt[1+v*num_player,t,1]*MAX_Y,'g-', label='p2')
+#         plt.plot(Sgt[2+v*num_player,t,0]*MAX_X,Sgt[2+v*num_player,t,1]*MAX_Y,'b-', label='p3')
+#         plt.plot(Sgt[3+v*num_player,t,0]*MAX_X,Sgt[3+v*num_player,t,1]*MAX_Y,'y-', label='p4')
+#         plt.plot(Sgt[4+v*num_player,t,0]*MAX_X,Sgt[4+v*num_player,t,1]*MAX_Y,'c-', label='p5')
+# 
+#         plt.plot(Spred[0+v*num_player,t,0]*MAX_X,Spred[0+v*num_player,t,1]*MAX_Y,'r:')
+#         plt.plot(Spred[1+v*num_player,t,0]*MAX_X,Spred[1+v*num_player,t,1]*MAX_Y,'g:')
+#         plt.plot(Spred[2+v*num_player,t,0]*MAX_X,Spred[2+v*num_player,t,1]*MAX_Y,'b:')
+#         plt.plot(Spred[3+v*num_player,t,0]*MAX_X,Spred[3+v*num_player,t,1]*MAX_Y,'y:')
+#         plt.plot(Spred[4+v*num_player,t,0]*MAX_X,Spred[4+v*num_player,t,1]*MAX_Y,'c:')
+# =============================================================================
         plt.legend()
         fig = plt.gcf()
         #plt.show(hcplot)        
@@ -375,18 +391,32 @@ def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir,orginVideoIdx):
     
 
         " plot trajectories ground truth "
-        ax1.plot(Sgt[0+v*num_player,t,1]*MAX_Y,Sgt[0+v*num_player,t,0]*MAX_X,t,'r-', label='p1')
-        ax1.plot(Sgt[1+v*num_player,t,1]*MAX_Y,Sgt[1+v*num_player,t,0]*MAX_X,t,'g-', label='p2')
-        ax1.plot(Sgt[2+v*num_player,t,1]*MAX_Y,Sgt[2+v*num_player,t,0]*MAX_X,t,'b-', label='p3')
-        ax1.plot(Sgt[3+v*num_player,t,1]*MAX_Y,Sgt[3+v*num_player,t,0]*MAX_X,t,'y-', label='p4')
-        ax1.plot(Sgt[4+v*num_player,t,1]*MAX_Y,Sgt[4+v*num_player,t,0]*MAX_X,t,'c-', label='p5')
-    
+        ax1.plot(rev_Sgt[v,0,t,1],rev_Sgt[v,0,t,0],t,'r-', label='p1')
+        ax1.plot(rev_Sgt[v,1,t,1],rev_Sgt[v,1,t,0],t,'g-', label='p2')
+        ax1.plot(rev_Sgt[v,2,t,1],rev_Sgt[v,2,t,0],t,'b-', label='p3')
+        ax1.plot(rev_Sgt[v,3,t,1],rev_Sgt[v,3,t,0],t,'y-', label='p4')
+        ax1.plot(rev_Sgt[v,4,t,1],rev_Sgt[v,4,t,0],t,'c-', label='p5')
+# =============================================================================
+#         ax1.plot(Sgt[0+v*num_player,t,1]*MAX_Y,Sgt[0+v*num_player,t,0]*MAX_X,t,'r-', label='p1')
+#         ax1.plot(Sgt[1+v*num_player,t,1]*MAX_Y,Sgt[1+v*num_player,t,0]*MAX_X,t,'g-', label='p2')
+#         ax1.plot(Sgt[2+v*num_player,t,1]*MAX_Y,Sgt[2+v*num_player,t,0]*MAX_X,t,'b-', label='p3')
+#         ax1.plot(Sgt[3+v*num_player,t,1]*MAX_Y,Sgt[3+v*num_player,t,0]*MAX_X,t,'y-', label='p4')
+#         ax1.plot(Sgt[4+v*num_player,t,1]*MAX_Y,Sgt[4+v*num_player,t,0]*MAX_X,t,'c-', label='p5')
+#     
+# =============================================================================
         " plot trajectories prediction "
-        ax1.plot(Spred[0+v*num_player,t,1]*MAX_Y,Spred[0+v*num_player,t,0]*MAX_X,t,'r:')
-        ax1.plot(Spred[1+v*num_player,t,1]*MAX_Y,Spred[1+v*num_player,t,0]*MAX_X,t,'g:')
-        ax1.plot(Spred[2+v*num_player,t,1]*MAX_Y,Spred[2+v*num_player,t,0]*MAX_X,t,'b:')
-        ax1.plot(Spred[3+v*num_player,t,1]*MAX_Y,Spred[3+v*num_player,t,0]*MAX_X,t,'y:')
-        ax1.plot(Spred[4+v*num_player,t,1]*MAX_Y,Spred[4+v*num_player,t,0]*MAX_X,t,'c:')    
+        ax1.plot(rev_Spred[v,0,t,1],rev_Spred[v,0,t,0],t,'r:')
+        ax1.plot(rev_Spred[v,1,t,1],rev_Spred[v,1,t,0],t,'g:')
+        ax1.plot(rev_Spred[v,2,t,1],rev_Spred[v,2,t,0],t,'b:')
+        ax1.plot(rev_Spred[v,3,t,1],rev_Spred[v,3,t,0],t,'y:')
+        ax1.plot(rev_Spred[v,4,t,1],rev_Spred[v,4,t,0],t,'c:')
+# =============================================================================
+#         ax1.plot(Spred[0+v*num_player,t,1]*MAX_Y,Spred[0+v*num_player,t,0]*MAX_X,t,'r:')
+#         ax1.plot(Spred[1+v*num_player,t,1]*MAX_Y,Spred[1+v*num_player,t,0]*MAX_X,t,'g:')
+#         ax1.plot(Spred[2+v*num_player,t,1]*MAX_Y,Spred[2+v*num_player,t,0]*MAX_X,t,'b:')
+#         ax1.plot(Spred[3+v*num_player,t,1]*MAX_Y,Spred[3+v*num_player,t,0]*MAX_X,t,'y:')
+#         ax1.plot(Spred[4+v*num_player,t,1]*MAX_Y,Spred[4+v*num_player,t,0]*MAX_X,t,'c:')    
+# =============================================================================
         ax1.legend()
         ax1.autoscale(enable=True, axis='both', tight=True)
     
