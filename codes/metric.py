@@ -11,6 +11,8 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd 
 
+import utils
+
 def loss_x_entropy(output, target):
     """Cross entropy loss
     
@@ -136,9 +138,11 @@ def ConfusionMatrix(logits,labels,dataset,filename,text_file):
     colIdx = orderTactic + ['Recall']
     df = pd.DataFrame(CM,index=rowIdx,columns=colIdx)
     
-    print(df.round(3))
-    text_file.write(df.round(3).to_string())
+    utils.printLog(text_file,df.round(3).to_string())
+    #print(df.round(3))
+    #text_file.write(df.round(3).to_string())
     #print(C)
     #text_file.write(np.array2string(C))
     if filename is not None:
         df.round(3).to_csv(filename,na_rep='NaN')     
+
