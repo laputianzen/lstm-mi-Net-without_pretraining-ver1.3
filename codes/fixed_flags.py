@@ -19,6 +19,7 @@ FLAGS.auto_load_ckpt = True
 FLAGS.input_data_dir = FLAGS.root_dir + '/raw'
 FLAGS.traj_file = FLAGS.input_data_dir + '/S_fixed.mat'
 FLAGS.fold_file = FLAGS.input_data_dir + '/split/tactic_bagIdxSplit5(1).mat'
+FLAGS.tactic_file = FLAGS.input_data_dir + '/tacticsInfo.mat'
 FLAGS.pretrain_batch_size = 2
 FLAGS.flush_secs  = 120
 

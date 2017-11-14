@@ -48,6 +48,7 @@ class dataset(object):
             self.input_feature_dim = 4
         
         self = load_tacticInfo(self)
+        self.videoIndex,self.gtRoleOrder,self.keyPlayerOrder = load_gtInfo(tactic_file)
     
 def load_fold(fold_file, fold, numVid):
     cross_fold = scipy.io.loadmat(fold_file)
@@ -171,6 +172,23 @@ def load_tacticInfo(dataset):
                            [0,1,0,1,0],[0,1,0,0,1],[0,0,1,1,0],[0,0,1,0,1],[0,0,0,1,1]],
                        [[1,1,1,1,1]]]
     return dataset
+
+def load_gtInfo(tactic_file):
+    tactics = scipy.io.loadmat(tactic_file)
+    tactics = tactics['tactics']
+    gtAlignment = tactics['gtAlignment'][0][0]
+    keyPlayer = tactics['keyPlayer'][0][0]
+    videoIndex= [range(0,15),range(15,26),range(26,46),range(46,55),range(55,68),
+                 range(68,83),range(83,98),range(98,111),range(111,127),range(127,134)]
+    gtRoleOrder = np.zeros_like(gtAlignment)
+    keyPlayerOrder = np.zeros_like(keyPlayer)
+    for t in range(len(videoIndex)):
+        for v in videoIndex[t]:
+            for p in range(len(keyPlayer[0])):
+                gtRoleOrder[v,gtAlignment[v,p]-1] = p
+                keyPlayerOrder[v,gtAlignment[v,p]-1] = keyPlayer[v,p]
+
+    return videoIndex, gtRoleOrder, keyPlayerOrder
 
 def generateLSTMTempData(nchoosek_inputs,sess,dataset,FLAGS,file_suffix):
     C53_data = []
