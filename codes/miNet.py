@@ -413,11 +413,13 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         lstm_last_output = tf.get_collection('ae_lstm/lastoutput') #'aelstm_lastoutput'
         train_lstm_last_output_op = tf.summary.histogram('ae_lstm/train/lastoutput',lstm_last_output)
         test_lstm_last_output_op = tf.summary.histogram('ae_lstm/test/lastoutput',lstm_last_output)
+        train_lstm_last_output_sparity = tf.summary.scalar('ae_lstm/train/last_output_sparsity', tf.nn.zero_fraction(lstm_last_output))
+        test_lstm_last_output_sparity = tf.summary.scalar('ae_lstm/test/last_output_sparsity', tf.nn.zero_fraction(lstm_last_output))
         
         num_train = len(dataset.trainIdx)
         regularization = tf.get_collection('decode_loss')
         decode_beta = tf.cast(FLAGS.decode_beta,tf.float32)
-        normalized_regularization = tf.sqrt(regularization)*tf.constant(FLAGS.MAX_Y,dtype=tf.float32) 
+        normalized_regularization = tf.sqrt(regularization)*tf.constant(dataset.MAX_Y,dtype=tf.float32) 
         loss = x_entropy + decode_beta * tf.squeeze(normalized_regularization,[0])
    
         train_x_entropy_op = tf.summary.scalar('train/x_entropy_loss',x_entropy)
@@ -443,13 +445,13 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #         #label_op = tf.summary.histogram('tactic_labels',Y_placeholder)
 # =============================================================================
         train_accus_merged = tf.summary.merge([train_accu_op, train_pAccu_op])
-        train_merged = tf.summary.merge([train_lstm_last_output_op,
+        train_merged = tf.summary.merge([train_lstm_last_output_op,train_lstm_last_output_sparity,
                                    train_tactic_prediction_op,
                                    train_tactic_score_op,
                                    train_x_entropy_op,train_aelstm_op,
                                    train_loss_op,#train_accu_op,
                                    trainable_vars_summary_op])#,output_op,label_op])
-        test_merged = tf.summary.merge([test_lstm_last_output_op,
+        test_merged = tf.summary.merge([test_lstm_last_output_op,test_lstm_last_output_sparity,
                                    test_tactic_prediction_op,
                                    test_tactic_score_op,
                                    test_x_entropy_op,test_aelstm_op,
