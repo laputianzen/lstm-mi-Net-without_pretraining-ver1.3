@@ -155,3 +155,26 @@ def ConfusionMatrix(logits,labels,dataset,filename,text_file):
     if filename is not None:
         df.round(3).to_csv(filename,na_rep='NaN')     
 
+def keyPlayerResult(Y_pred,Y_label,y_pred,dataset,phase,text_file):
+    if phase == 'train':
+        selectIndex = dataset.trainIdx
+    else:
+        selectIndex = dataset.testIdx
+    NAME =[]
+    for i in range(len(selectIndex)):
+        hit = [(selectIndex[i] in dataset.videoIndex[r]) for r in range(len(dataset.videoIndex))]
+        loc = hit.index(True)
+        tacticName = dataset.tacticName[loc]
+        string = tacticName + "-" + selectIndex[i].astype(str) + ":"
+        NAME.append(string)
+        
+    rolePlayerMap = dataset.gtRoleOrder[selectIndex]
+    Y_correct_map = Y_pred * Y_label
+    Y_correct = np.sum(Y_correct_map,axis=-1,keepdims=True)
+    NUM_PLAYER = rolePlayerMap.shape[1]
+    keyPlayers = y_pred * (rolePlayerMap+1) * np.tile(Y_correct,[1,NUM_PLAYER])
+    DAT = np.column_stack((NAME, keyPlayers.astype(int)))
+    np.savetxt('test.txt', DAT, delimiter=" ", fmt="%s")
+    #np.savetxt(text_file,keyPlayers,fmt='%d', delimiter=' ')
+    #with open(text_file,'w') as file:
+        #file.write(np.array2string(keyPlayers))
