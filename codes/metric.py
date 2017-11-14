@@ -60,7 +60,7 @@ def calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder):
     y_correct = tf.equal(y_correctY,y_placeholder_correctY)
     NUM_PLAYER = int(y_placeholder.shape[1])
     y_accu = tf.reduce_sum(tf.cast(y_correct,tf.float32))/(tf.reduce_sum(tf.cast(correct_prediction,tf.float32))*NUM_PLAYER)
-    return y_accu
+    return y_accu, y
       
 
 def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):

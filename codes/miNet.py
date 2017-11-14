@@ -389,7 +389,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
         Y = tf.concat(bagOuts,1,name='output')
         y_playerPool = tf.concat(playerOuts,1,name='key_player')
-        y_accu = metric.calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder)
+        y_accu, y = metric.calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder)
 # =============================================================================
 #         bool_YMask = tf.one_hot(tf.argmax(Y,axis=-1),int(Y.shape[1]),axis=-1)
 #         bool_YMask = tf.cast(bool_YMask,tf.bool)
