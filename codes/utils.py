@@ -66,5 +66,10 @@ def xavier_initializer(shape, uniform=False):
         trunc_stddev = tf.sqrt(1.3 / n)
         return tf.truncated_normal(shape, 0.0, trunc_stddev)            
 
+def printLog(log_file, *args, **kwargs):
+    print(*args, **kwargs)
+    with open(log_file,'a') as file:
+        print(*args, **kwargs, file=file)
+
 if __name__ == "__main__":
     clear_all()

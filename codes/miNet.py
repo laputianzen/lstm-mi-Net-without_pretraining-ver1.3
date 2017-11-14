@@ -581,8 +581,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             actual_epochs = epochs+resume_step+1
             perm = np.arange(num_train)
             np.random.shuffle(perm)
-            print("|-------------|-----------|-------------|----------|")
-            text_file.write("|-------------|-----------|-------------|----------|\n")
+            utils.printLog(FLAGS._ipython_console_txt,"|-------------|-----------|-------------|----------|")
             
             ''' training of one epoch '''
             for step in range(int(num_train/FLAGS.finetune_batch_size)):
@@ -612,8 +611,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 count = count + 1
                 ''' save training data result after n training steps '''
                 if step % FLAGS.finetuning_summary_step == 0:
-                    print('|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
-                    text_file.write('|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)\n' % (actual_epochs, step, loss_value, duration))
+                    utils.printLog(FLAGS._ipython_console_txt,'|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
+
                     feed_dict = fetch_data(train_data,selectIndex,True)
                     summary_str = run_step(sess,train_merged,feed_dict)
                     summary_writer.add_summary(summary_str, count)
@@ -626,8 +625,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 
             if actual_epochs % FLAGS.finetuning_saving_epochs == 0:
                 save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)
-                print("Model saved in file: %s" % save_path)
-                text_file.write('Model saved in file: %s\n'  % save_path)
+                utils.printLog(FLAGS._ipython_console_txt,"Model saved in file: %s" % save_path)
 
 
 
@@ -689,7 +687,6 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_test.csv'.format(fold,actual_epochs)
             metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename,text_file)
             
-            text_file.flush()
             
             ''' save decode result '''
             dec_output = tf.get_collection('ae_lstm/dec_output')
@@ -773,7 +770,6 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         metric.ConfusionMatrix(Y_pred,test_multi_Y,dataset,filename,text_file)        
  
         summary_writer.close()           
-        text_file.close()
 
         ''' for final epochs files doesn't exist '''
 # =============================================================================
