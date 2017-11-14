@@ -64,6 +64,15 @@ def calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder):
     y_accu = tf.reduce_sum(tf.cast(y_correct,tf.float32))/(tf.reduce_sum(tf.cast(correct_prediction,tf.float32))*NUM_PLAYER)
     return y_accu, y
       
+def calculatePAccu(y_pred,y_label,Y_pred,Y_label):
+    NUM_PLAYER = y_pred.shape[1]
+    Y_correct_map = Y_pred * Y_label
+    y_correct_map = np.equal(y_pred, y_label)
+    y_correct_per_tactic = np.matmul(np.transpose(Y_correct_map),y_correct_map)
+    Y_correct_per_tactic = np.sum(Y_correct_map,axis=0)
+    y_accu_Y_correct_per_tactic = np.nan_to_num(np.sum(y_correct_per_tactic,axis=1) / (Y_correct_per_tactic * NUM_PLAYER))
+    avg_y_accu_Y_correct_per_tactic = np.mean(y_accu_Y_correct_per_tactic)
+    return y_accu_Y_correct_per_tactic, avg_y_accu_Y_correct_per_tactic
 
 def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
     
@@ -105,7 +114,7 @@ def calculateAccu(Y_pred,inst_pred,test_Y,test_label,dataset):
     
     pAccu = np.sum(y_correct) / KP_pred[Y_correct,:].size
     #print(y_correct)
-    print('bag accuracy %.5f, inst accuracy %.5f' %(bagAccu, pAccu))
+    #print('bag accuracy %.5f, inst accuracy %.5f' %(bagAccu, pAccu))
     time.sleep(1)
     return bagAccu, pAccu   
    

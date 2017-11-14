@@ -388,6 +388,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                                         name='targetP_pl')
 
         Y = tf.concat(bagOuts,1,name='output')
+        Y_predmap = tf.one_hot(tf.argmax(tf.nn.softmax(Y),axis=1),NUM_CLASS)
         y_playerPool = tf.concat(playerOuts,1,name='key_player')
         y_accu, y = metric.calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder)
 # =============================================================================
