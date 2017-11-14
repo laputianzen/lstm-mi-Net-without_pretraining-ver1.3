@@ -59,11 +59,13 @@ with tf.name_scope("ae_lstm"):
 tf.add_to_collection('decode_loss',ae.loss)
 tf.add_to_collection('ae_lstm/lastoutput',ae.last_output) #'aelstm_lastoutput'
 tf.add_to_collection('ae_lstm/dec_output',ae.output)
-numPlayer = 5
-nchoosek_inputs, tf_C53_combs, tf_C52_combs, tf_C55_combs, C53_input, C52_input, C55_input= nchoosek_grouping(ae,np_nchoosek,numPlayer)
+
+nchoosek_inputs, tf_C53_combs, tf_C52_combs, tf_C55_combs, C53_input, C52_input, C55_input= nchoosek_grouping(ae,np_nchoosek,datasets.numPlayer)
 
 # =============================================================================
 # bb = 4
+# padS = datasets.dataTraj
+# seqLenMatrix = datasets.seqLenMatrix
 # A = padS[0:bb,:,:,:]
 # A1 = np.reshape(padS[0:bb,:,:,:],(-1,450,2))
 # batch_seqlen = np.reshape(seqLenMatrix[0:bb,:],(-1))
@@ -74,6 +76,8 @@ nchoosek_inputs, tf_C53_combs, tf_C52_combs, tf_C55_combs, C53_input, C52_input,
 #         ,feed_dict={p_input:A1,seqlen: batch_seqlen})    
 #     c53i,c52i,c55i = sess.run([C53_input, C52_input, C55_input]
 #         ,feed_dict={p_input:A1,seqlen: batch_seqlen})
+#     c5k_group = sess.run(nchoosek_inputs
+#         ,feed_dict={p_input:A1,seqlen: batch_seqlen})    
 #     for c in range(bb):
 #         if np.sum(c53i[c] - last[c53[c],:]):
 #             raise AssertionError("two output are not equal in C53 [batch{0}]".format(c))
@@ -81,8 +85,8 @@ nchoosek_inputs, tf_C53_combs, tf_C52_combs, tf_C55_combs, C53_input, C52_input,
 #             raise AssertionError("two output are not equal in C52 [batch{0}]".format(c))            
 #         if np.sum(c55i[c] - last[c55[c],:]):
 #             raise AssertionError("two output are not equal in C55 [batch{0}]".format(c))            
-# 
 # =============================================================================
+
 """
 pre-training cycle
 """

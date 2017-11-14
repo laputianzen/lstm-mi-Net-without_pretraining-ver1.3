@@ -312,20 +312,6 @@ def main_unsupervised(ae_shape,acfunList,dataset,FLAGS,sess=None):
 
 
 def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
-    
-    fold = FLAGS.fold
-    if not os.path.exists(FLAGS._confusion_dir):
-        os.makedirs(FLAGS._confusion_dir)
-    
-    if not os.path.exists(FLAGS._logit_txt):
-        os.makedirs(FLAGS._train_logit_txt)
-        os.makedirs(FLAGS._test_logit_txt)
-    
-    if not os.path.exists(FLAGS._dec_output_dir):
-        os.makedirs(FLAGS._dec_output_train_dir)
-        os.makedirs(FLAGS._dec_output_test_dir)     
-        
-    text_file = open(FLAGS._ipython_console_txt,"w")
     with instNetList[0].session.graph.as_default():
         sess = instNetList[0].session
         
@@ -529,7 +515,22 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         print('max_to_keep:',saver._max_to_keep)
         print('max_to_keep in saver_def:',saver.saver_def.max_to_keep)
 
-
+        ''' feed data '''
+        if not os.path.exists(FLAGS._confusion_dir):
+            os.makedirs(FLAGS._confusion_dir)
+        
+        if not os.path.exists(FLAGS._logit_txt):
+            os.makedirs(FLAGS._train_logit_txt)
+            os.makedirs(FLAGS._test_logit_txt)
+        
+        if not os.path.exists(FLAGS._dec_output_dir):
+            os.makedirs(FLAGS._dec_output_train_dir)
+            os.makedirs(FLAGS._dec_output_test_dir)     
+            
+        #text_file = open(FLAGS._ipython_console_txt,"w")
+        #os.remove(FLAGS._ipython_console_txt)
+        open(FLAGS._ipython_console_txt,"w")
+        fold = FLAGS.fold 
         trainIdx = dataset.trainIdx
         testIdx = dataset.testIdx
         seqLenMatrix = dataset.seqLenMatrix
@@ -544,7 +545,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         num_train = len(batch_multi_Y)
         strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
         print(strBagShape)
-        batch_multi_X = dataset.dataTraj[dataset.trainIdx,:]
+        batch_multi_X = dataset.dataTraj[trainIdx,:]
         train_data = {'sequences':batch_multi_X,'seqlen':seqLenMatrix[trainIdx,:],'label':batch_multi_Y,'KPLabel':batch_multi_KPlabel}
 
         testdir = 'dataGood/multiPlayers/syncLargeZoneVelocitySoftAssign(R=16,s=10)/test/fold%d' %(fold+1)
@@ -605,34 +606,21 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             np.random.shuffle(perm)
             utils.printLog(FLAGS._ipython_console_txt,"|-------------|-----------|-------------|----------|")
             
+            start_time = time.time()
             ''' training of one epoch '''
-            for step in range(int(num_train/FLAGS.finetune_batch_size)):
-                start_time = time.time()
+            for step in range(int(num_train/FLAGS.finetune_batch_size)):                
                     
                 selectIndex = perm[FLAGS.finetune_batch_size*step:FLAGS.finetune_batch_size*step+FLAGS.finetune_batch_size]
                 
                 ''' get train data and feed into graph in training stage '''
-
                 feed_dict = fetch_data(train_data,selectIndex,True)
-                _, loss_value, logit, label = run_step(sess,[train_op, loss, Y, Y_placeholder],feed_dict)
-                ''' more details for debugging '''
-#                los, m, var, mf, xpmf, maxInst, ta_pred,num_ta, related_inst_idx, relate_inst_idx = sess.run([loss_xs, mean, variance, mask_feature, expand_mask_feature, y_maxInsts, tactic_pred, numEachTactic, pred_related_inst_idx, pred_relate_inst_idx],
-#                                                          feed_dict={
-#                                                                  FLAGS.lstm.p_input:random_sequences,
-#                                                                  FLAGS.lstm.seqlen: batch_seqlen,
-#                                                                  Y_placeholder: target_feed,
-#                                                                  keep_prob_: FLAGS.keep_prob
-#                                                })
-                ''' model outputs for tensorboarad image summaries and debugging '''
-                feed_dict = fetch_data(train_data,selectIndex,False)
-                Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)      
-                duration = time.time() - start_time
-                
-                
+                _, loss_value = run_step(sess,[train_op, loss],feed_dict)
+                                                
                 # Write the summaries and print an overview fairly often.
                 count = count + 1
                 ''' save training data result after n training steps '''
                 if step % FLAGS.finetuning_summary_step == 0:
+                    duration = time.time() - start_time
                     utils.printLog(FLAGS._ipython_console_txt,'|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
 
                     feed_dict = fetch_data(train_data,selectIndex,True)
@@ -642,8 +630,12 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                     if FLAGS.save_gradints:
                         summary_str = run_step(sess,optimize_loss_op,feed_dict)               
                         summary_writer.add_summary(summary_str, count)
-                    
+                
+                    feed_dict = fetch_data(train_data,selectIndex,False)
+                    Y_scaled, Y_unscaled = run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)                         
                     np.savetxt('{}/logit{}_{}.txt'.format(FLAGS._train_logit_txt,actual_epochs,step),Y_scaled,fmt='%.4f', delimiter=' ')
+                    
+                    start_time = time.time()
                 
             if actual_epochs % FLAGS.finetuning_saving_epochs == 0:
                 save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)

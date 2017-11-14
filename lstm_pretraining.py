@@ -20,7 +20,7 @@ from LSTMAutoencoder import *
 
 fold = 0 #0~4
 #FLAGS
-                                                                                           FLAGS = lambda: None
+FLAGS = lambda: None
 FLAGS.pretrain_batch_size = 2
 FLAGS.exp_dir = 'experiment/Adam'
 FLAGS.summary_dir = FLAGS.exp_dir + '/summaries'

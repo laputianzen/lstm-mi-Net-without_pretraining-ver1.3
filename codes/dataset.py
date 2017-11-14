@@ -15,7 +15,7 @@ class dataset(object):
     def __init__(self, traj_file, fold_file, tactic_file,
                  fold, max_sequence_length,input_mode):
         self.traj_file = traj_file
-        
+     
         'read datasets'
         S, numVid, numPlayer = read_data_sets(traj_file)
         self.numPlayer= numPlayer
@@ -29,9 +29,9 @@ class dataset(object):
         'load 5-fold cross-validation'
         testIdx_fold, num_test, trainIdx_fold, num_train = load_fold(fold_file,fold,numVid)
         self.testIdx = testIdx_fold
-        self.num_test = num_test
-        self.trainIdx = trainIdx_fold
-        self.num_train = num_train
+        self.num_test= num_test
+        self.trainIdx= trainIdx_fold
+        self.num_train=num_train
         
         'create seqlenMatrix'
         self.seqLenMatrix = generate_seqLenMatrix(S,numPlayer)
