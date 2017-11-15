@@ -51,9 +51,11 @@ class dataset(object):
         self.videoIndex,self.gtRoleOrder,self.keyPlayerOrder = load_gtInfo(tactic_file)
     
 def load_fold(fold_file, fold, numVid):
+    '''original index come from matlab, thus it begin at 1, 
+        so need to minus 1 when in python '''
     cross_fold = scipy.io.loadmat(fold_file)
     testIdx_fold = cross_fold['test_bagIdx']
-    testIdx_fold = testIdx_fold[0][fold][0]
+    testIdx_fold = testIdx_fold[0][fold][0] - 1
     num_test = len(testIdx_fold)
     
     trainIdx_fold = np.arange(numVid)
