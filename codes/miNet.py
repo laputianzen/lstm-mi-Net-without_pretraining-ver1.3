@@ -526,6 +526,10 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         if not os.path.exists(FLAGS._dec_output_dir):
             os.makedirs(FLAGS._dec_output_train_dir)
             os.makedirs(FLAGS._dec_output_test_dir)     
+
+        if not os.path.exists(FLAGS._key_player_dir):
+            os.makedirs(FLAGS._key_player_dir)
+
             
         #text_file = open(FLAGS._ipython_console_txt,"w")
         #os.remove(FLAGS._ipython_console_txt)
@@ -581,7 +585,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         def generate_result(data,num_data,accus_merged,phase,count):
             selectIndex = np.arange(num_data) 
             feed_dict = fetch_data(data,selectIndex,False)            
-            loss_value, bagAccu, pAccu, Y_pred = run_step(sess,[loss, accu, y_accu, Y_predmap],feed_dict)
+            loss_value, bagAccu, pAccu, Y_pred, player_pred = run_step(sess,[loss, accu, y_accu, Y_predmap, y],feed_dict)
             utils.printLog(FLAGS._ipython_console_txt,'')
             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: %s loss = %.5f ' % (actual_epochs, phase, loss_value))
             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: %s accuracy = %.5f '  % (actual_epochs, phase, bagAccu))
@@ -598,6 +602,12 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_{2}.csv'.format(fold,actual_epochs,phase)
             Y_label = data['label']
             metric.ConfusionMatrix(Y_pred,Y_label,dataset,filename,FLAGS._ipython_console_txt)
+            
+            
+            filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}.txt'.format(fold,actual_epochs,phase)
+            info_filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_stat.csv'.format(fold,actual_epochs,phase)
+            metric.keyPlayerResult(Y_pred,Y_label,player_pred,dataset,phase,filename,FLAGS._ipython_console_txt,info_filename)
+            
 
         count = 0
         for epochs in range(max_epochs):
@@ -727,8 +737,17 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         else:
             print('\nLoad/Resume Model: accuracy = %.5f'  % (bagAccu))
         #metric.calculateAccu(Y_pred,inst_pred,test_multi_Y,test_multi_label,dataset)
-        text_file = 'keyplayer_result.txt'
-        metric.keyPlayerResult(Y_pred,test_multi_Y,player_pred,dataset,selectIndex,text_file)
+        
+        phase = 'test'
+        if max_epochs is not 0:
+            filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_final.txt'.format(fold,actual_epochs,phase)
+            info_filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_final_stat.csv'.format(fold,actual_epochs,phase)
+        else:
+            filename = None
+            info_filename = None
+        
+        metric.keyPlayerResult(Y_pred,test_multi_Y,player_pred,dataset,phase,filename,FLAGS._ipython_console_txt,info_filename)
+        utils.printLog(FLAGS._ipython_console_txt," ")
         #y_accu_Y_correct_per_tactic, avg_y_accu_Y_correct_per_tactic = metric.calculatePAccu(player_pred,test_multi_label,Y_pred,test_multi_Y)
         #print('y accu per tactic:', y_accu_Y_correct_per_tactic)
         #print('avg y accu per tactic:', avg_y_accu_Y_correct_per_tactic)

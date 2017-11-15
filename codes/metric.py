@@ -155,7 +155,7 @@ def ConfusionMatrix(logits,labels,dataset,filename,text_file):
     if filename is not None:
         df.round(3).to_csv(filename,na_rep='NaN')     
 
-def keyPlayerResult(Y_pred,Y_label,y_pred,dataset,phase,text_file):
+def keyPlayerResult(Y_pred,Y_label,y_pred,dataset,phase,text_file,log_file,info_file):
     if phase == 'train':
         selectIndex = dataset.trainIdx
     else:
@@ -174,7 +174,43 @@ def keyPlayerResult(Y_pred,Y_label,y_pred,dataset,phase,text_file):
     NUM_PLAYER = rolePlayerMap.shape[1]
     keyPlayers = y_pred * (rolePlayerMap+1) * np.tile(Y_correct,[1,NUM_PLAYER])
     DAT = np.column_stack((NAME, keyPlayers.astype(int)))
-    np.savetxt('test.txt', DAT, delimiter=" ", fmt="%s")
+    if text_file is not None:
+        np.savetxt(text_file, DAT, delimiter=" ", fmt="%s")
     #np.savetxt(text_file,keyPlayers,fmt='%d', delimiter=' ')
     #with open(text_file,'w') as file:
         #file.write(np.array2string(keyPlayers))
+    rolePlayerAccumMap = np.zeros((len(dataset.tacticName),dataset.numPlayer))
+    for i in range(len(selectIndex)):
+        hit = [(selectIndex[i] in dataset.videoIndex[r]) for r in range(len(dataset.videoIndex))]
+        loc = hit.index(True)
+        for p in range(dataset.numPlayer):
+            if keyPlayers[i][p] != 0:
+                roleIndex = int(keyPlayers[i][p])-1
+                rolePlayerAccumMap[loc,roleIndex] = rolePlayerAccumMap[loc,roleIndex]+1
+        
+    #nv_reorder = [0,1,2,3,8,4,6,5,9,5,7]     
+    #[[0,1,2,3,5,7],[6,9],[4,8]]
+    
+    reorder = np.concatenate(dataset.C5k_CLASS).ravel().tolist()
+    num_k = np.zeros(len(dataset.tacticName),dtype=np.int8)
+    k = 0
+    boundary = len(dataset.C5k_CLASS[0])
+    for idx in range(len(dataset.tacticName)):
+        if idx >= boundary:
+            k = k + 1            
+            boundary = boundary + len(dataset.C5k_CLASS[k])
+        num_k[idx] = dataset.k[k]
+    #inv_reorder = [reorder.index(i) for i in range(len(dataset.tacticName))]
+    reorderMapTemp = rolePlayerAccumMap[reorder]
+    reorderMapSum = np.sum(reorderMapTemp,axis=1,keepdims=True)
+    num_vid = reorderMapSum/np.expand_dims(num_k,axis=1)
+    reorderMap = np.concatenate((reorderMapTemp,num_vid),axis=1)
+    orderTactic = [dataset.tacticName[i] for i in reorder]
+    orderTacticInfo = [orderTactic[t]+'('+ num_k[t].astype(str)+')' for t in range(len(dataset.tacticName))]
+    role= ['r1','r2','r3','r4','r5','num_vid']
+    df = pd.DataFrame(reorderMap,index=orderTacticInfo,columns=role).astype(int)
+    #print(df)
+    utils.printLog(log_file," ")
+    utils.printLog(log_file,df.to_string())
+    if info_file is not None:
+        df.to_csv(info_file,na_rep='NaN') 

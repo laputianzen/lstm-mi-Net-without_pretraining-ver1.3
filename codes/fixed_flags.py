@@ -73,6 +73,9 @@ FLAGS._test_logit_txt = FLAGS._logit_txt + '/test'
 FLAGS._dec_output_dir = FLAGS.miNet_train_dir + '/decode'
 FLAGS._dec_output_train_dir = FLAGS._dec_output_dir + '/train'
 FLAGS._dec_output_test_dir = FLAGS._dec_output_dir + '/test'
+FLAGS._key_player_dir = FLAGS.miNet_train_dir + '/keyPlayerDetection'
+
+
 
 FLAGS.ae_lstm_debug = False#True
 FLAGS.ae_lstm_save_summary_step = 10
