@@ -14,7 +14,7 @@ from os.path import join as pjoin
 
 import numpy as np
 import tensorflow as tf
-
+import pandas as pd 
 
 
 import readmat
@@ -608,6 +608,16 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             info_filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_stat.csv'.format(fold,actual_epochs,phase)
             metric.keyPlayerResult(Y_pred,Y_label,player_pred,dataset,phase,filename,FLAGS._ipython_console_txt,info_filename)
             
+            y_label = data['KPLabel']
+            y_accu_Y_correct_per_tactic, _ = metric.calculatePAccu(player_pred,y_label,Y_pred,Y_label)
+            reorder = np.concatenate(dataset.C5k_CLASS).ravel().tolist()
+            orderTactic = [dataset.tacticName[i] for i in reorder]
+            df = pd.DataFrame(y_accu_Y_correct_per_tactic,index=orderTactic,columns=['player accuracy'])
+            yaccu_filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_yaccu.csv'.format(fold,actual_epochs,phase)
+            df.transpose().to_csv(yaccu_filename,na_rep='NaN')            
+            utils.printLog(FLAGS._ipython_console_txt," ")
+            utils.printLog(FLAGS._ipython_console_txt,df.transpose())
+            utils.printLog(FLAGS._ipython_console_txt," ")
 
         count = 0
         for epochs in range(max_epochs):
