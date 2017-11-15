@@ -561,8 +561,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         test_multi_X = dataset.dataTraj[testIdx,:]
         test_data = {'sequences':test_multi_X,'seqlen':seqLenMatrix[testIdx,:],'label':test_multi_Y,'KPLabel':test_multi_label}
       
-        if FLAGS.finetune_batch_size is None:
-            FLAGS.finetune_batch_size = len(test_multi_Y)
+        if FLAGS.finetune_batch_size == 0:
+            FLAGS.finetune_batch_size = len(batch_multi_Y)#len(test_multi_Y)
         
 
         def fetch_data(data,selectIndex,dropout):
