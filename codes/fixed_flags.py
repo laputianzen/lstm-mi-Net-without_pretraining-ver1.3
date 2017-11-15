@@ -56,11 +56,11 @@ FLAGS.resetLSTMTempData = False
 #FLAGS.frameRate = 30
 
 
-FLAGS.miNet_train_dir = '{0}_lr{1}_{2}/{3}_hidden{4}_{5}_{6}/miNet_h{7}L{8}_iter{9}_{10}_keepprob{11}/decode_beta{12}/fold{13}'.format(
+FLAGS.miNet_train_dir = '{0}_lr{1}_{2}_batch{14}/{3}_hidden{4}_{5}_{6}/miNet_h{7}L{8}_iter{9}_{10}_keepprob{11}/decode_beta{12}/fold{13}'.format(
         FLAGS.exp_dir,FLAGS.supervised_learning_rate,FLAGS.supervised_weight_decay,
         FLAGS.lstm_type, FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,FLAGS.lstm_input_type,
         FLAGS.miNet_last_hidden_dim,FLAGS.miNet_num_hidden_layer,
-        FLAGS.finetuning_epochs,FLAGS.miNet_common_acfun,FLAGS.keep_prob,FLAGS.decode_beta,FLAGS.fold+1)
+        FLAGS.finetuning_epochs,FLAGS.miNet_common_acfun,FLAGS.keep_prob,FLAGS.decode_beta,FLAGS.fold+1,FLAGS.finetune_batch_size)
 
 
 FLAGS.miNet_train_model_dir = FLAGS.miNet_train_dir + '/model'
