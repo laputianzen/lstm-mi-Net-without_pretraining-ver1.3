@@ -167,15 +167,28 @@ def keyPlayerResult(Y_pred,Y_label,y_pred,dataset,phase,text_file,log_file,info_
         tacticName = dataset.tacticName[loc]
         string = tacticName + "-" + selectIndex[i].astype(str) + ":"
         NAME.append(string)
-        
+    #nv_reorder = [0,1,2,3,8,4,6,5,9,5,7]     
+    #[[0,1,2,3,5,7],[6,9],[4,8]]
+    
+    reorder = np.concatenate(dataset.C5k_CLASS).ravel().tolist()
+    inv_reorder = [reorder.index(i) for i in range(len(dataset.tacticName))]
+    PRED_NAME =[]    
+    
+    for i in range(len(selectIndex)):
+        pred_loc = Y_pred[i].tolist().index(1)
+        tacticName = dataset.tacticName[inv_reorder[pred_loc]]
+        PRED_NAME.append(tacticName) 
+       
     rolePlayerMap = dataset.gtRoleOrder[selectIndex]
     Y_correct_map = Y_pred * Y_label
-    Y_correct = np.sum(Y_correct_map,axis=-1,keepdims=True)
+    Y_correct = 2 * np.sum(Y_correct_map,axis=-1,keepdims=True) - 1 #correct=1, error=-1
     NUM_PLAYER = rolePlayerMap.shape[1]
     keyPlayers = y_pred * (rolePlayerMap+1) * np.tile(Y_correct,[1,NUM_PLAYER])
-    DAT = np.column_stack((NAME, keyPlayers.astype(int)))
+    DAT = np.column_stack((PRED_NAME, keyPlayers.astype(int)))
+    df = pd.DataFrame(DAT,index=NAME,columns=['Y_pred','p1','p2','p3','p4','p5'])
     if text_file is not None:
-        np.savetxt(text_file, DAT, delimiter=" ", fmt="%s")
+        #np.savetxt(text_file, DAT, delimiter=" ", fmt="%s")
+        df.to_csv(text_file,na_rep='NaN') 
     #np.savetxt(text_file,keyPlayers,fmt='%d', delimiter=' ')
     #with open(text_file,'w') as file:
         #file.write(np.array2string(keyPlayers))
@@ -184,14 +197,10 @@ def keyPlayerResult(Y_pred,Y_label,y_pred,dataset,phase,text_file,log_file,info_
         hit = [(selectIndex[i] in dataset.videoIndex[r]) for r in range(len(dataset.videoIndex))]
         loc = hit.index(True)
         for p in range(dataset.numPlayer):
-            if keyPlayers[i][p] != 0:
+            if keyPlayers[i][p] > 0:
                 roleIndex = int(keyPlayers[i][p])-1
                 rolePlayerAccumMap[loc,roleIndex] = rolePlayerAccumMap[loc,roleIndex]+1
         
-    #nv_reorder = [0,1,2,3,8,4,6,5,9,5,7]     
-    #[[0,1,2,3,5,7],[6,9],[4,8]]
-    
-    reorder = np.concatenate(dataset.C5k_CLASS).ravel().tolist()
     num_k = np.zeros(len(dataset.tacticName),dtype=np.int8)
     k = 0
     boundary = len(dataset.C5k_CLASS[0])
@@ -200,7 +209,7 @@ def keyPlayerResult(Y_pred,Y_label,y_pred,dataset,phase,text_file,log_file,info_
             k = k + 1            
             boundary = boundary + len(dataset.C5k_CLASS[k])
         num_k[idx] = dataset.k[k]
-    #inv_reorder = [reorder.index(i) for i in range(len(dataset.tacticName))]
+           
     reorderMapTemp = rolePlayerAccumMap[reorder]
     reorderMapSum = np.sum(reorderMapTemp,axis=1,keepdims=True)
     num_vid = reorderMapSum/np.expand_dims(num_k,axis=1)

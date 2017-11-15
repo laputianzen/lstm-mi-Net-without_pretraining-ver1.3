@@ -604,7 +604,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             metric.ConfusionMatrix(Y_pred,Y_label,dataset,filename,FLAGS._ipython_console_txt)
             
             
-            filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}.txt'.format(fold,actual_epochs,phase)
+            filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}.csv'.format(fold,actual_epochs,phase)
             info_filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_stat.csv'.format(fold,actual_epochs,phase)
             metric.keyPlayerResult(Y_pred,Y_label,player_pred,dataset,phase,filename,FLAGS._ipython_console_txt,info_filename)
             
@@ -750,7 +750,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         
         phase = 'test'
         if max_epochs is not 0:
-            filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_final.txt'.format(fold,actual_epochs,phase)
+            filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_final.csv'.format(fold,actual_epochs,phase)
             info_filename = FLAGS._key_player_dir + '/Fold{0}_Epoch{1}_{2}_final_stat.csv'.format(fold,actual_epochs,phase)
         else:
             filename = None
