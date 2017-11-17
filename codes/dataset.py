@@ -102,11 +102,12 @@ def normalize_data(padS,MAX_X,MAX_Y):
     padS = nPadS   
     return padS
 
-def generatePV(padS,frameRate,seqLenMatrix):
+def generatePV(padS,frameRate,seqLenMatrix,showDatasetHistogram=False):
     padSV = np.zeros([padS.shape[0],padS.shape[1],padS.shape[2],padS.shape[3]*2],dtype=np.float32)
     padSV[:,:,:,0] = padS[:,:,:,0]
     padSV[:,:,:,1] = padS[:,:,:,1]
-    showHistogram(padS,50,seqLenMatrix)
+    if showDatasetHistogram:
+        showHistogram(padS,50,seqLenMatrix)
     
     rawV = (np.roll(padS,-1,axis=2) - padS)*frameRate
     # set final step to 0
@@ -117,7 +118,8 @@ def generatePV(padS,frameRate,seqLenMatrix):
 
     padSV[:,:,:,2] = rawV[:,:,:,0]
     padSV[:,:,:,3] = rawV[:,:,:,1]
-    showHistogram(rawV,50,seqLenMatrix)
+    if showDatasetHistogram:
+        showHistogram(rawV,50,seqLenMatrix)
     #nV = standardize_velocity(rawV,seqLenMatrix)
     #showHistogram(nV,50,seqLenMatrix)
     #padSV[:,:,:,2] = nV[:,:,:,0]
