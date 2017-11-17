@@ -15,7 +15,8 @@ sys.path.append("./codes")
 # LSTM-autoencoder
 import LSTMAutoencoder
 import miNet
-from fixed_flags import FLAGS
+#from fixed_flags import FLAGS
+from flags import FLAGS
 import utils
 import dataset
 from nchoosek_Net import nchoosek_grouping

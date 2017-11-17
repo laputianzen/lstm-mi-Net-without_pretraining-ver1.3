@@ -8,49 +8,52 @@ Created on Tue Oct  3 18:04:57 2017
 # load base setting, mainly folder name
 FLAGS = lambda: None
 FLAGS.optimizer = 'RMSProp'
+FLAGS.supervised_learning_rate = 0.01
+FLAGS.supervised_weight_decay = 'constant' #exponential, piecewise, polynomial
+
+
 FLAGS.fold = 0
 FLAGS.root_dir = './'
 FLAGS.exp_dir = FLAGS.root_dir + 'experiment/' + FLAGS.optimizer  
-FLAGS.flush_secs  = 120
 
-FLAGS.auto_load_ckpt = True
+
+
 
 # input dataset
 FLAGS.input_data_dir = FLAGS.root_dir + '/raw'
 FLAGS.traj_file = FLAGS.input_data_dir + '/S_fixed.mat'
 FLAGS.fold_file = FLAGS.input_data_dir + '/split/tactic_bagIdxSplit5(1).mat'
 FLAGS.tactic_file = FLAGS.input_data_dir + '/tacticsInfo.mat'
-FLAGS.pretrain_batch_size = 2
-FLAGS.flush_secs  = 120
-
-FLAGS.save_gradints = True
+#FLAGS.pretrain_batch_size = 2
 
 FLAGS.miNet_last_hidden_dim = 16
 FLAGS.miNet_num_hidden_layer = 1
-FLAGS.finetuning_epochs = 500
+FLAGS.miNet_common_acfun = 'sigmoid'
+FLAGS.keep_prob = 1.0    
+
+
 FLAGS.finetune_batch_size = 0 #2 0 means all training data
+FLAGS.finetuning_epochs = 6
 FLAGS.finetuning_summary_step = 10
 FLAGS.finetuning_saving_epochs = 1
 FLAGS.save_dec_epochs = 50
 FLAGS.fine_tune_resume = True
-FLAGS.miNet_common_acfun = 'sigmoid'
 
-FLAGS.supervised_learning_rate = 0.01
-FLAGS.supervised_weight_decay = 'constant' #exponential, piecewise, polynomial
-FLAGS.keep_prob = 1.0    
 FLAGS.decode_beta = 0.1
 
 FLAGS.lstm_type = 'BasicLSTM'
 FLAGS.use_peepholes=True
 FLAGS.lstm_hidden_dim = 256
 FLAGS.lstm_max_sequence_length = 450
-FLAGS.lstm_input_type = 'P+V' #P
+FLAGS.lstm_input_type = 'P'
 #FLAGS.lstm_input_dim = 2
 FLAGS.lstm_activation = 'softmax'#'relu6' # default tanh
 
-FLAGS.resetLSTMTempData = False
 
 
+FLAGS.flush_secs  = 120
+FLAGS.auto_load_ckpt = True
+FLAGS.save_gradints = True
 #FLAGS.MAX_X = 326
 #FLAGS.MAX_Y = 348
 #FLAGS.frameRate = 30
@@ -76,8 +79,13 @@ FLAGS._dec_output_test_dir = FLAGS._dec_output_dir + '/test'
 FLAGS._key_player_dir = FLAGS.miNet_train_dir + '/keyPlayerDetection'
 
 
+# =============================================================================
+# # lstm pretraining settings
+# FLAGS.resetLSTMTempData = False
+# FLAGS.ae_lstm_debug = False#True
+# FLAGS.ae_lstm_save_summary_step = 10
+# FLAGS.ae_lstm_save_ckpt_step    = 10
+# FLAGS.ae_lstm_save_dec_step     = 20
+# =============================================================================
 
-FLAGS.ae_lstm_debug = False#True
-FLAGS.ae_lstm_save_summary_step = 10
-FLAGS.ae_lstm_save_ckpt_step    = 10
-FLAGS.ae_lstm_save_dec_step     = 20
+FLAGS1 = FLAGS
