@@ -160,9 +160,9 @@ flags.DEFINE_string('miNet_train_summary_dir', 'summaries',
 flags.DEFINE_string('_confusion_dir', 'confusionMatrix',
                     'Directory to put the confusionMatrix data')
 #@FLAGS._confusion_dir = FLAGS.miNet_train_dir + '/confusionMatrix'
-flags.DEFINE_string('_ipython_console_txt', 'log.txt',
+flags.DEFINE_string('_ipython_console_txt', 'console',
                     'Directory to put the log data')
-#@FLAGS._ipython_console_txt = FLAGS.miNet_train_dir + '/log.txt'
+#@FLAGS._ipython_console_txt = FLAGS.miNet_train_dir + '/log'
 
 flags.DEFINE_string('_logit_txt', 'logits',
                     'Directory to put the logits data')
@@ -233,7 +233,7 @@ def experiment_out(FLAGS):
     FLAGS._key_player_dir = pjoin(FLAGS.miNet_train_dir,FLAGS._key_player_dir)
 
 
-print(FLAGS.__dict__)
+#print(FLAGS.__dict__)
 raw_out(FLAGS)
 experiment_out(FLAGS)
 

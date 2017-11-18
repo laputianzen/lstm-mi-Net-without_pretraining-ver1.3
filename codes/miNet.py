@@ -529,10 +529,12 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
         if not os.path.exists(FLAGS._key_player_dir):
             os.makedirs(FLAGS._key_player_dir)
-
+              
             
         #text_file = open(FLAGS._ipython_console_txt,"w")
         #os.remove(FLAGS._ipython_console_txt)
+        timeStamp = str(int(time.time()))
+        FLAGS._ipython_console_txt = '{0}-{1}.log'.format(FLAGS._ipython_console_txt,timeStamp)
         open(FLAGS._ipython_console_txt,"w")
         fold = FLAGS.fold 
         trainIdx = dataset.trainIdx
