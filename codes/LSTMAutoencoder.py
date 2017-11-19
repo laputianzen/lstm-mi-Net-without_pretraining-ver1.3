@@ -361,11 +361,11 @@ def plot_traj_3d(Spred,Sgt,seqlen,MAX_X,MAX_Y,iteration,save_dir,orginVideoIdx):
         plt.plot(rev_Sgt[v,3,t,0],rev_Sgt[v,3,t,1],'y-', label='p4')
         plt.plot(rev_Sgt[v,4,t,0],rev_Sgt[v,4,t,1],'c-', label='p5')
         
-        plt.plot(rev_Spred[v,0,t,0],rev_Spred[v,0,t,1],'r-', label='p1')
-        plt.plot(rev_Spred[v,1,t,0],rev_Spred[v,1,t,1],'g-', label='p2')
-        plt.plot(rev_Spred[v,2,t,0],rev_Spred[v,2,t,1],'b-', label='p3')
-        plt.plot(rev_Spred[v,3,t,0],rev_Spred[v,3,t,1],'y-', label='p4')
-        plt.plot(rev_Spred[v,4,t,0],rev_Spred[v,4,t,1],'c-', label='p5')
+        plt.plot(rev_Spred[v,0,t,0],rev_Spred[v,0,t,1],'r:', label='p1')
+        plt.plot(rev_Spred[v,1,t,0],rev_Spred[v,1,t,1],'g:', label='p2')
+        plt.plot(rev_Spred[v,2,t,0],rev_Spred[v,2,t,1],'b:', label='p3')
+        plt.plot(rev_Spred[v,3,t,0],rev_Spred[v,3,t,1],'y:', label='p4')
+        plt.plot(rev_Spred[v,4,t,0],rev_Spred[v,4,t,1],'c:', label='p5')
 # =============================================================================
 #         plt.plot(Sgt[0+v*num_player,t,0]*MAX_X,Sgt[0+v*num_player,t,1]*MAX_Y,'r-', label='p1')
 #         plt.plot(Sgt[1+v*num_player,t,0]*MAX_X,Sgt[1+v*num_player,t,1]*MAX_Y,'g-', label='p2')
