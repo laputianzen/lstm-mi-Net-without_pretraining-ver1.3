@@ -1,4 +1,9 @@
 dataGood/
 experiment/
 raw/
+plot*/
+augment/
+*.npy
+*.sh
+*.png
 __pycache__
