@@ -85,7 +85,11 @@ nchoosek_inputs, nk_local_vars = nchoosek_grouping(ae,datasets.np_nchoosek,datas
 """
 pre-training cycle
 """
-sess = tf.Session()#tf.InteractiveSession()
+gpu_opt = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+config = tf.ConfigProto(gpu_options=gpu_opt,
+                        intra_op_parallelism_threads=2,
+                        inter_op_parallelism_threads=2)
+sess = tf.Session(config=config)#tf.InteractiveSession()
 #==============================================================================
 # LSTMAutoencoder.pretraining(ae,sess,datasets,FLAGS)
 # 
