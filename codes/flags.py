@@ -60,7 +60,10 @@ FLAGS = flags.FLAGS
 # dataset setttings
 flags.DEFINE_integer("fold", 0, "fold")
 #@FLAGS.fold = 0
-
+flags.DEFINE_integer("gpu_device", 0, "gpu_device")
+#FLAGS.gpu_device = 0
+tf.app.flags.DEFINE_float('gpu_memory_fraction',0.8,'gpu_memory_fraction')
+#FLAGS.gpu_memory_fraction = 0.8
 
 # Optimizer settings
 flags.DEFINE_string('optimizer','RMSProp','optimizer')

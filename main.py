@@ -85,8 +85,8 @@ nchoosek_inputs, nk_local_vars = nchoosek_grouping(ae,datasets.np_nchoosek,datas
 """
 pre-training cycle
 """
-gpu_opt = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
-config = tf.ConfigProto(gpu_options=gpu_opt, device_count = {'GPU':0},
+gpu_opt = tf.GPUOptions(per_process_gpu_memory_fraction=FLAGS.gpu_memory_fraction)
+config = tf.ConfigProto(gpu_options=gpu_opt, device_count = {'GPU':FLAGS.gpu_device},
                         intra_op_parallelism_threads=2,
                         inter_op_parallelism_threads=2)
 sess = tf.Session(config=config)#tf.InteractiveSession()
