@@ -117,7 +117,12 @@ for h in range(FLAGS.miNet_num_hidden_layer):
     acfunList.append(utils.get_activation_fn(miNet_common_acfun))
 #acfunList.append(utils.get_activation_fn('linear')) #log_sigmoid
 acfunList.append(None)
-miList = miNet.main_unsupervised(instNet_shape,acfunList,datasets,FLAGS,sess)
+
+batch_norm = np.zeros(FLAGS.miNet_num_hidden_layer+1,dtype=bool)
+if FLAGS.batch_norm_layer >=0 and FLAGS.batch_norm_layer <= FLAGS.miNet_num_hidden_layer:
+    batch_norm[FLAGS.batch_norm_layer] = True
+   
+miList = miNet.main_unsupervised(instNet_shape,acfunList,batch_norm,datasets,FLAGS,sess)
 miNet.main_supervised(miList,num_inst,nchoosek_inputs,datasets,FLAGS)
         
 sess.close()        

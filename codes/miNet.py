@@ -34,7 +34,7 @@ class miNet(object):
     _inputs_str = "x{0}"
     _instNets_str = "I{0}"
 
-    def __init__(self, shape, acfunList, sess):
+    def __init__(self, shape, acfunList, batch_norm, sess):
         """Autoencoder initializer
 
         Args:
@@ -45,6 +45,7 @@ class miNet(object):
         self.__shape = shape  # [input_dim,hidden1_dim,...,hidden_n_dim,output_dim]
         self.__num_hidden_layers = len(self.__shape) - 2
         self.acfunList = acfunList
+        self.batch_norm = batch_norm
 
         self.__variables = {}
         self.__sess = sess
@@ -209,7 +210,7 @@ class miNet(object):
 #==============================================================================
         return out
     
-    def single_instNet(self, input_pl, dropout):
+    def single_instNet(self, input_pl, dropout, scope, batch_norm_reuse=False):
         """Get the supervised fine tuning net
 
         Args:
@@ -224,7 +225,8 @@ class miNet(object):
             acfun = self.acfunList[i]
             w = self._w(i + 1)
             b = self._b(i + 1)
-            
+            if self.batch_norm[i]:
+                last_output = tf.contrib.layers.batch_norm(last_output,renorm=True,reuse=batch_norm_reuse,scope=scope)
             last_output = self._activate(last_output, w, b, acfun=acfun, keep_prob=dropout)
             
         return last_output
@@ -239,10 +241,10 @@ class miNet(object):
             name_instNet = self._instNets_str.format(i + 1)
             with tf.variable_scope("mil") as scope:
                 if i == 0:
-                    self[name_instNet] = self.single_instNet(self[name_input], dropout)
+                    self[name_instNet] = self.single_instNet(self[name_input], dropout,scope)
                     scope.reuse_variables()
                 else:    
-                    self[name_instNet] = self.single_instNet(self[name_input], dropout)
+                    self[name_instNet] = self.single_instNet(self[name_input], dropout,scope,batch_norm_reuse=True)
             
             tmpList.append(self[name_instNet])
         
@@ -298,14 +300,14 @@ def training(loss, learning_rate, loss_key=None, optimMethod=tf.train.AdamOptimi
 
 
 
-def main_unsupervised(ae_shape,acfunList,dataset,FLAGS,sess=None):
+def main_unsupervised(ae_shape,acfunList,batch_norm,dataset,FLAGS,sess=None):
     
     if sess is None:
         sess = tf.Session()
    
     aeList = list()
     for a in range(len(ae_shape)):
-        aeList.append(miNet(ae_shape[a],acfunList, sess))
+        aeList.append(miNet(ae_shape[a],acfunList, batch_norm, sess))
     
                                       
     return aeList

@@ -120,6 +120,8 @@ flags.DEFINE_string('miNet_common_acfun', 'sigmoid','miNet_common_acfun')
 #@FLAGS.miNet_common_acfun = 'sigmoid'
 tf.app.flags.DEFINE_float("keep_prob", 1.0, "keep_prob")
 #@FLAGS.keep_prob = 1.0
+tf.app.flags.DEFINE_integer("batch_norm_layer",-1,"batch_norm_layer")
+#FLAGS.batch_norm_layer = -1
 
 # tensorflow settings
 flags.DEFINE_integer('flush_secs',120,'flush_secs')
