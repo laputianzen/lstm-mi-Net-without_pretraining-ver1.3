@@ -93,6 +93,14 @@ flags.DEFINE_boolean('fine_tune_resume',True,'fine_tune_resume')
 # regularization 
 tf.app.flags.DEFINE_float('decode_beta',1,'decode_beta')
 #@FLAGS.decode_beta = 0.1
+tf.app.flags.DEFINE_float('sim_beta',1,'sim_beta')
+#FLAGS.sim_beta = 100000
+tf.app.flags.DEFINE_float('bag_sim_beta',1,'bag_sim_beta')
+#FLAGS.bag_sim_beta = 10000
+flags.DEFINE_string('bag_similarity_type', 'top','bag_similarity_type')
+#FLAGS.bag_similarity_type = 'top' or 'all'
+flags.DEFINE_string('similarity_y_source', 'gt','similarity_y_source')
+#FLAGS.similarity_y_source = 'gt' # pred
 
 # Directories
 #flags.DEFINE_string('exp_dir',
@@ -214,7 +222,7 @@ def experiment_out(FLAGS):
     root_dir = find_code_root_dir()  
     FLAGS.exp_dir = pjoin(root_dir, FLAGS.exp_dir, FLAGS.optimizer)
     #print('exp dir:', FLAGS.exp_dir)
-    FLAGS.miNet_train_dir = '{0}_lr{1}_{2}_batch{14}/{3}_hidden{4}_{5}_{6}/miNet_h{7}L{8}_iter{9}_{10}_keepprob{11}/decode_beta{12}/fold{13}'.format(
+    FLAGS.miNet_train_dir = '{0}_lr{1}_{2}_batch{14}/{3}_hidden{4}_{5}_{6}/miNet_h{7}L{8}_iter{9}_{10}_keepprob{11}/decode_beta{12}_inst_beta{15}_bag_beta{16}_{17}_y{18}/nkpooling_{19}/fold{13}'.format(
         FLAGS.exp_dir,FLAGS.supervised_learning_rate,FLAGS.supervised_weight_decay,
         FLAGS.lstm_type, FLAGS.lstm_hidden_dim,FLAGS.lstm_activation,FLAGS.lstm_input_type,
         FLAGS.miNet_last_hidden_dim,FLAGS.miNet_num_hidden_layer,

@@ -375,11 +375,82 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         y_placeholder = tf.placeholder(tf.float32,
                                         shape=(None,NUM_PLAYER),
                                         name='targetP_pl')
+        
+        Y_val_pred = tf.concat(bagOuts,1,name='output')
+        y_maxInsts = tf.concat(maxInstOuts,1, name='maxInsts')
+        common_loss_sw = tf.placeholder(dtype=tf.float32,shape=(),name='common_loss')
+        inst_loss_sw = tf.placeholder(dtype=tf.float32,shape=(),name='inst_loss')
+        
+        def indexPlayerMap(t):
+            ''' t [num_player] key player configuartion'''
+            playerMap = tf.cast(tf.concat(dataset.playerMap,0),tf.bool) #[totalNumInst x num_player]
+            correct_map = tf.reduce_prod(tf.cast(tf.logical_not(tf.logical_xor(playerMap,tf.cast(t,tf.bool))),tf.uint8),axis=1)
+            correct_idx = tf.argmax(correct_map)
+            return correct_idx
+        
+        y_idxGT = tf.map_fn(indexPlayerMap,y_placeholder,dtype=tf.int64)
+        y_onehotGT = tf.one_hot(y_idxGT,instIdx[-1])
+        y_maxInstsGT = tf.multiply(tf.tile(tf.expand_dims(tf.cast(y_idxGT,tf.float32),axis=1),[1,NUM_CLASS]) + 1,Y_placeholder) - 1
+        
+        bb = [len(dataset.C5k_CLASS[i]) for i in range(len(dataset.C5k_CLASS))]
+        ###bagIdx = np.insert(np.cumsum(bb),0,0)
+        ###def retrieveY_from_y_gt(m):
+        ###    b = m[0]
+        ###    y_idx = m[1]
+        ###    Y_idx = tf.argmax(m[2])
+        ###    #i = tf.where(tf.greater(y_idx,instIdx))
+        ###    #subnet_idx = i[-1]
+        ###    gi = tf.cast(tf.greater_equal(y_idx,instIdx),tf.float32)
+        ###    li = tf.cast(tf.less(y_idx,np.roll(instIdx,-1)),tf.float32)
+        ###    subnet_idx = tf.argmax(gi*li)
+        ###    
+        ###    subnet_y_idx = y_idx - tf.gather(instIdx,subnet_idx) #instIdx[subnet_idx]
+        ###    subnet_Y_idx = Y_idx - tf.gather(bagIdx,subnet_idx) #bagIdx[subnet_idx]
+        ###    
+        ###    Y_retrieved = instOuts[subnet_idx][subnet_y_idx,b,subnet_Y_idx]
+        ###    local_vars = {'b':b,'y_idx':y_idx,'Y_idx':Y_idx,
+        ###                  'subnet_idx':subnet_idx,
+        ###                  'subnet_y_idx':subnet_y_idx,'subnet_Y_idx':subnet_Y_idx}
+        ###    
+        ###    return Y_retrieved,local_vars 
+        ###mm = (tf.range(tf.shape(Y_placeholder)[0]),y_idxGT,Y_placeholder)
+        ###Y_predGT = tf.map_fn(retrieveY_from_y_gt,mm,dtype=tf.float32)        
+        ###Y_predGTmap = Y_placeholder * Y_predGT
+        def retrieveY_from_y_gt(m):
+            instOut = m[0]
+            Y_idx = tf.argmax(m[1])
+            y_idx = tf.argmax(m[2])
+            #y_max = tf.max(m[1])
+            #Y_max = tf.max(m[2])
+            
+            y_val_fromYgt = tf.gather(instOut,Y_idx,axis=1)
+            top_y_val = tf.gather(y_val_fromYgt,y_idx,axis=0)
+            Y_pred_gt = m[1] * top_y_val
+            '''Y_pred_gt [0 0 0 X ..0] or [0 ... 0] [num_tactics]'''
+            return Y_pred_gt
+            
+        tactic_sep = tf.split(Y_placeholder,bb,axis=1)
+        inst_sep = tf.split(y_onehotGT,num_inst,axis=1)
+        def retrieveValue(instOut,tactic_sep,inst_sep):
+            mm = (tf.transpose(instOut,perm=(1,0,2)),tactic_sep,inst_sep)
+            rr = tf.map_fn(retrieveY_from_y_gt,mm,dtype=tf.float32)
+            return rr
+        subs_Y_val = []    
+        for k in range(len(instNetList)):
+            subnet_Y_val = retrieveValue(instOuts[k],tactic_sep[k],inst_sep[k])
+            subs_Y_val.append(subnet_Y_val)
+        Y_predGTmap = tf.concat(subs_Y_val,1)  #[batch x NUM_CLASS]
+        
+        if FLAGS.similarity_y_source == 'gt':
+            Y = tf.where(tf.cast(Y_placeholder,tf.bool),Y_predGTmap,Y_val_pred)
+        else:
+            Y = Y_val_pred
 
-        Y = tf.concat(bagOuts,1,name='output')
         Y_predmap = tf.one_hot(tf.argmax(tf.nn.softmax(Y),axis=1),NUM_CLASS)
         y_playerPool = tf.concat(playerOuts,1,name='key_player')
         y_accu, y = metric.calulcutePAccuTF(Y,y_playerPool,Y_placeholder,y_placeholder)
+
+
 # =============================================================================
 #         bool_YMask = tf.one_hot(tf.argmax(Y,axis=-1),int(Y.shape[1]),axis=-1)
 #         bool_YMask = tf.cast(bool_YMask,tf.bool)
@@ -405,6 +476,23 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         train_lstm_last_output_sparity = tf.summary.scalar('ae_lstm/train/last_output_sparsity', tf.nn.zero_fraction(lstm_last_output))
         test_lstm_last_output_sparity = tf.summary.scalar('ae_lstm/test/last_output_sparsity', tf.nn.zero_fraction(lstm_last_output))
         
+        if FLAGS.similarity_y_source == 'pred':
+            print('load y from Y prediction!')
+            mean_sim_variance, sim_local_vars = metric.inst_similarity(Y_predmap,Y_placeholder,y_maxInsts,inputs)
+            bag_sim, bag_local_vars = metric.withBag_similarity(Y_predmap,Y_placeholder,y_maxInsts,inputs,FLAGS.bag_similarity_type)
+        elif FLAGS.similarity_y_source == 'gt':
+            print('load y from y ground truth!')
+            mean_sim_variance, sim_local_vars = metric.inst_similarity(Y_predmap,Y_placeholder,y_maxInstsGT,inputs)
+            bag_sim, bag_local_vars = metric.withBag_similarity(Y_predmap,Y_placeholder,y_maxInstsGT,inputs,FLAGS.bag_similarity_type)
+            
+        ##norm_sim_variance = sim_variance/tf.cast(tf.count_nonzero(sim_variance),tf.float32)
+        ##norm_sim_variance = tf.where(tf.is_nan(norm_sim_variance),tf.zeros_like(norm_sim_variance),norm_sim_variance)
+        ##mean_sim_variance = tf.reduce_sum(norm_sim_variance)
+        #mean_sim_variance = tf.reduce_sum(sim_variance)/tf.cast(tf.count_nonzero(sim_variance),tf.float32)
+        #mean_sim_variance = tf.where(tf.is_nan(mean_sim_variance),tf.zeros_like(mean_sim_variance),mean_sim_variance)
+        sim_beta = FLAGS.sim_beta
+        bag_sim_beta = FLAGS.bag_sim_beta
+        
         num_train = len(dataset.trainIdx)
         regularization = tf.get_collection('decode_loss')
         decode_beta = FLAGS.decode_beta#tf.cast(FLAGS.decode_beta,tf.float32)
@@ -412,13 +500,31 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 # =============================================================================
 #         normalized_regularization = tf.sqrt(regularization)*tf.constant(dataset.MAX_Y,dtype=tf.float32) 
 # =============================================================================
+        loss = common_loss_sw * (x_entropy + decode_beta * tf.squeeze(normalized_regularization,[0])) + inst_loss_sw * (sim_beta * tf.reduce_sum(mean_sim_variance) - bag_sim_beta * tf.reduce_sum(bag_sim))
    
         train_x_entropy_op = tf.summary.scalar('train/x_entropy_loss',x_entropy)
-        train_aelstm_op = tf.summary.scalar('train/aelstm_loss',tf.squeeze(normalized_regularization,[0]))
+        train_aelstm_op = tf.summary.scalar('train/aelstm_loss', tf.squeeze(normalized_regularization,[0]))
+        train_sim_op    = tf.summary.scalar('train/top_inst_sim', tf.reduce_sum(mean_sim_variance))
+        train_bag_sim_op= tf.summary.scalar('train/bag_sim', tf.reduce_sum(bag_sim))
+        train_sim_epoch_op    = tf.summary.scalar('train/top_inst_sim_epoch', tf.reduce_sum(mean_sim_variance))
+        train_bag_sim_epoch_op= tf.summary.scalar('train/bag_sim_epoch', tf.reduce_sum(bag_sim))        
+        
+# =============================================================================
+#         train_aelstm_op = tf.summary.scalar('train/aelstm_loss=x{}'.format(decode_beta),decode_beta * tf.squeeze(normalized_regularization,[0]))
+#         train_sim_op    = tf.summary.scalar('train/top_inst_sim=x{}'.format(sim_beta), sim_beta * tf.reduce_sum(mean_sim_variance))
+#         train_bag_sim_op= tf.summary.scalar('train/bag_sim=x{}'.format(bag_sim_beta), bag_sim_beta * tf.reduce_sum(bag_sim))
+# =============================================================================
         train_loss_op = tf.summary.scalar('train/total_loss',loss)        
         
         test_x_entropy_op = tf.summary.scalar('test/x_entropy_loss',x_entropy)
-        test_aelstm_op = tf.summary.scalar('test/aelstm_loss',tf.squeeze(normalized_regularization,[0]))
+        test_aelstm_op = tf.summary.scalar('test/aelstm_loss', tf.squeeze(normalized_regularization,[0]))
+        test_sim_op    = tf.summary.scalar('test/top_inst_sim', tf.reduce_sum(mean_sim_variance))
+        test_bag_sim_op= tf.summary.scalar('test/bag_sim', tf.reduce_sum(bag_sim))
+# =============================================================================
+#         test_aelstm_op = tf.summary.scalar('test/aelstm_lossx{}'.format(decode_beta),decode_beta * tf.squeeze(normalized_regularization,[0]))
+#         test_sim_op    = tf.summary.scalar('test/top_inst_simx{}'.format(sim_beta), sim_beta * tf.reduce_sum(mean_sim_variance))
+#         test_bag_sim_op= tf.summary.scalar('test/bag_simx{}'.format(bag_sim_beta), bag_sim_beta * tf.reduce_sum(bag_sim))
+# =============================================================================
         test_loss_op = tf.summary.scalar('test/total_loss',loss)
         
         with tf.name_scope('MultiClassEvaluation'):
@@ -435,17 +541,17 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #         Y_logits_image = label2image(tf.nn.softmax(Y))
 #         #label_op = tf.summary.histogram('tactic_labels',Y_placeholder)
 # =============================================================================
-        train_accus_merged = tf.summary.merge([train_accu_op, train_pAccu_op])
-        train_merged = tf.summary.merge([train_lstm_last_output_op,train_lstm_last_output_sparity,
+        train_epochs_merged = tf.summary.merge([train_accu_op,train_pAccu_op,train_sim_epoch_op,train_bag_sim_epoch_op])
+        train_steps_merged = tf.summary.merge([train_lstm_last_output_op,train_lstm_last_output_sparity,
                                    train_tactic_prediction_op,
                                    train_tactic_score_op,
-                                   train_x_entropy_op,train_aelstm_op,
+                                   train_x_entropy_op,train_aelstm_op,#train_sim_op,train_bag_sim_op,
                                    train_loss_op,#train_accu_op,
                                    trainable_vars_summary_op])#,output_op,label_op])
-        test_merged = tf.summary.merge([test_lstm_last_output_op,test_lstm_last_output_sparity,
+        test_epochs_merged = tf.summary.merge([test_lstm_last_output_op,test_lstm_last_output_sparity,
                                    test_tactic_prediction_op,
                                    test_tactic_score_op,
-                                   test_x_entropy_op,test_aelstm_op,
+                                   test_x_entropy_op,test_aelstm_op,test_sim_op,test_bag_sim_op,
                                    test_loss_op,test_accu_op,test_pAccu_op])#    
         
         summary_writer = tf.summary.FileWriter(FLAGS.miNet_train_summary_dir,
@@ -572,7 +678,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             FLAGS.finetune_batch_size = len(batch_multi_Y)#len(test_multi_Y)
         
 
-        def fetch_data(data,selectIndex,dropout):
+        def fetch_data(data,selectIndex,dropout,loss_mode='mixed'):
             random_sequences = np.reshape(data['sequences'][selectIndex,:],(-1,data['sequences'].shape[2],data['sequences'].shape[3]))
             batch_seqlen = np.reshape(data['seqlen'][selectIndex,:],(-1))
             target_feed = data['label'][selectIndex].astype(np.int32)            
@@ -583,15 +689,50 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             else:
                 keep_prob = 1.0
                 
+            if loss_mode == 'mixed':
+                common_loss = 1.0
+                inst_loss   = 1.0
+            elif loss_mode == 'common':
+                common_loss = 1.0
+                inst_loss   = 0.0
+            elif loss_mode == 'inst':
+                common_loss = 0.0
+                inst_loss   = 1.0                
+            
+                
             feed_dict={FLAGS.p_input:random_sequences,
                        FLAGS.seqlen: batch_seqlen,
                        Y_placeholder: target_feed,
                        y_placeholder: targetP_feed,
-                       keep_prob_: keep_prob}
+                       keep_prob_: keep_prob,
+                       common_loss_sw: common_loss,
+                       inst_loss_sw: inst_loss}
             return feed_dict
         def generate_result(data,num_data,accus_merged,phase,count):
+            # similarity debugging
             selectIndex = np.arange(num_data) 
-            feed_dict = fetch_data(data,selectIndex,False)            
+            feed_dict = fetch_data(data,selectIndex,False)
+            #maxInsts_val = run_step(sess,y_maxInsts,feed_dict)
+            #sim_vars = run_step(sess,sim_variance,feed_dict)
+            #mean_sim_var = run_step(sess,sim_beta * mean_sim_variance,feed_dict)
+            #num_tactic_inovolved = run_step(sess,tf.count_nonzero(sim_variance),feed_dict)
+            sim_vals,bag_sim_vals = run_step(sess,[sim_local_vars,bag_local_vars],feed_dict)
+            ##e, m, t, t1 = run_step(sess,[idx,y_maxInsts,Y_placeholder,Y_predmap],feed_dict)
+            ##gt = run_step(sess,y_maxInstsGT,feed_dict)
+            y_gt,y_max,Y11,Y12 = run_step(sess,[Y_predGTmap,Y_val_pred,Y,Y_placeholder,],feed_dict)
+            
+            selectIndex = np.arange(num_data) 
+            feed_dict = fetch_data(data,selectIndex,False)
+            inst_vals = run_step(sess,instOuts,feed_dict)
+            instProbDir = '{}/inst_prob{}-{}'.format(FLAGS._test_logit_txt,actual_epochs,phase)
+            if not os.path.exists(instProbDir):
+                os.makedirs(instProbDir)            
+            for k in range(len(inst_vals)):
+                for t in range(inst_vals[k].shape[2]):
+                    np.savetxt('{}/inst_prob{}-{}/C5{}-t{}.txt'.format(
+                            FLAGS._test_logit_txt,actual_epochs,phase,dataset.k[k],dataset.C5k_CLASS[k][t]),
+                            np.transpose(inst_vals[k][:,:,t]),fmt='%f', delimiter=' ')
+                        
             loss_value, bagAccu, pAccu, Y_pred, player_pred = run_step(sess,[loss, accu, y_accu, Y_predmap, y],feed_dict)
             utils.printLog(FLAGS._ipython_console_txt,'')
             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: %s loss = %.5f ' % (actual_epochs, phase, loss_value))
@@ -626,7 +767,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             utils.printLog(FLAGS._ipython_console_txt,df.transpose())
             utils.printLog(FLAGS._ipython_console_txt," ")
 
-        count = 0
+        #count = 0
         for epochs in range(max_epochs):
             actual_epochs = epochs+resume_step+1
             perm = np.arange(num_train)
@@ -640,18 +781,30 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                 selectIndex = perm[FLAGS.finetune_batch_size*step:FLAGS.finetune_batch_size*step+FLAGS.finetune_batch_size]
                 
                 ''' get train data and feed into graph in training stage '''
-                feed_dict = fetch_data(train_data,selectIndex,True)
+                feed_dict = fetch_data(train_data,selectIndex,True,loss_mode = 'common')
+                #sim_vals_b = run_step(sess,sim_local_vars,feed_dict)
+                #bag_vals_b = run_step(sess,bag_local_vars,feed_dict)
+                #print(sim_vals_b['sim_vals'])
+                #print('tactic correct:\n', sim_vals_b['tactic_correct'])
                 _, loss_value = run_step(sess,[train_op, loss],feed_dict)
-                                                
+                
+                #nchoosek = run_step(sess,tf.concat(inputs,1),feed_dict)
+                #decloss,last_output = run_step(sess,[regularization,lstm_last_output],feed_dict)
+                #sim_vals_a = run_step(sess,sim_local_vars,feed_dict)
+                #print(sim_vals_a['sim_vals'])
+                #print('tactic correct:\n', sim_vals_a['tactic_correct'])
                 # Write the summaries and print an overview fairly often.
-                count = count + 1
+                #count = count + 1
+                count = actual_epochs * int(num_train/FLAGS.finetune_batch_size) + step
+                #print('count:', count)
                 ''' save training data result after n training steps '''
                 if step % FLAGS.finetuning_summary_step == 0:
                     duration = time.time() - start_time
+                    
                     utils.printLog(FLAGS._ipython_console_txt,'|   Epoch %d  |  Step %d  | train loss = %.3f | (%.3f sec)' % (actual_epochs, step, loss_value, duration))
 
                     feed_dict = fetch_data(train_data,selectIndex,True)
-                    summary_str = run_step(sess,train_merged,feed_dict)
+                    summary_str = run_step(sess,train_steps_merged,feed_dict)
                     summary_writer.add_summary(summary_str, count)
 
                     if FLAGS.save_gradints:
@@ -664,15 +817,20 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
                     
                     start_time = time.time()
                 
+            selectIndex = np.arange(num_train) 
+            feed_dict = fetch_data(train_data,selectIndex,True,loss_mode='inst')
+            sim_vars,sim_vals = run_step(sess,[mean_sim_variance,sim_local_vars],feed_dict)
+            _, loss_value = run_step(sess,[train_op, loss],feed_dict)
+            utils.printLog(FLAGS._ipython_console_txt,'|   Epoch %d  |  inst. involved  | train loss = %.3f |' % (actual_epochs, loss_value))
+
             if actual_epochs % FLAGS.finetuning_saving_epochs == 0:
                 save_path = saver.save(sess, model_ckpt, global_step=actual_epochs)
                 utils.printLog(FLAGS._ipython_console_txt,"Model saved in file: %s" % save_path)
 
-
-
+            #count = actual_epochs * int(num_train/FLAGS.finetune_batch_size) + step
             ''' evaluate test performance after one epoch (need add training performance)'''
-            generate_result(train_data,num_train,train_accus_merged,'train',count)
-            generate_result(test_data,num_test,test_merged,'test',count)
+            generate_result(train_data,num_train,train_epochs_merged,'train',actual_epochs)#count)
+            generate_result(test_data,num_test,test_epochs_merged,'test',actual_epochs)#count)
             # train data result 
 # =============================================================================
 #             selectIndex = np.arange(num_train) 
@@ -687,7 +845,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #             np.savetxt('{}/logit{}-train-scaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_scaled,fmt='%.4f', delimiter=' ')
 #             np.savetxt('{}/logit{}-train-unscaled.txt'.format(FLAGS._test_logit_txt,actual_epochs),Y_unscaled,fmt='%.4f', delimiter=' ')            
 #             
-#             summary_str = run_step(sess,train_accus_merged,feed_dict)
+#             summary_str = run_step(sess,train_epochs_merged,feed_dict)
 #             summary_writer.add_summary(summary_str, count)
 #         
 # 
@@ -700,7 +858,7 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 #             utils.printLog(FLAGS._ipython_console_txt,'Epochs %d: test accuracy = %.5f '  % (actual_epochs, bagAccu))
 #         
 #             ''' save summaries of test data '''
-#             summary_str = run_step(sess,test_merged,feed_dict)
+#             summary_str = run_step(sess,test_epochs_merged,feed_dict)
 #             summary_writer.add_summary(summary_str, count)     
 #         
 #             Y_scaled, Y_unscaled= run_step(sess,[tf.nn.softmax(Y),Y],feed_dict)
