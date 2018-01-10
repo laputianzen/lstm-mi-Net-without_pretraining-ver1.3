@@ -8,6 +8,7 @@ Created on Wed Aug 30 22:25:10 2017
 import numpy as np
 import scipy.io
 import os
+import itertools
 import matplotlib.pyplot as plt
 
 class dataset(object):
@@ -194,15 +195,24 @@ def paddingZeroToTraj(S,max_step_num):
     padS = np.stack(padS,axis=0)     
     return padS
 
+def createPlayerIndexAndMap(num_keyPlayer,numPlayer):
+    np_nchoosek = list()
+    playerMap = list()
+    for k in num_keyPlayer:
+        tmp =list(itertools.combinations(range(numPlayer),k))
+        tmp_player = np.zeros((len(tmp),numPlayer),dtype=np.int32)
+        np_tmp = np.array(tmp,dtype=np.int32)
+        for i in range(len(np_tmp)):
+            tmp_player[i,np_tmp[i,:]] = 1
+        playerMap.append(tmp_player.tolist())
+        np_nchoosek.append(list(itertools.combinations(range(numPlayer),k)))
+    return np_nchoosek, playerMap
+
 def load_tacticInfo(dataset):
     dataset.tacticName =['F23','EV','HK','PD','PT','RB','SP','WS','WV','WW']
     dataset.C5k_CLASS = [[0,1,2,3,5,7],[6,9],[4,8]]
     dataset.k = [3,2,5]
-    dataset.playerMap = [[[1,1,1,0,0],[1,1,0,1,0],[1,1,0,0,1],[1,0,1,1,0],[1,0,1,0,1],
-                           [1,0,0,1,1],[0,1,1,1,0],[0,1,1,0,1],[0,1,0,1,1],[0,0,1,1,1]],
-                       [[1,1,0,0,0],[1,0,1,0,0],[1,0,0,1,0],[1,0,0,0,1],[0,1,1,0,0],
-                           [0,1,0,1,0],[0,1,0,0,1],[0,0,1,1,0],[0,0,1,0,1],[0,0,0,1,1]],
-                       [[1,1,1,1,1]]]
+    dataset.np_nchoosek, dataset.playerMap = createPlayerIndexAndMap(dataset.k,dataset.numPlayer)
     return dataset
 
 def load_gtInfo(tactic_file):

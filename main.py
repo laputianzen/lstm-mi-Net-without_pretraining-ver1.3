@@ -7,8 +7,6 @@ Created on Thu Aug 10 16:14:30 2017
 """
 import numpy as np
 import tensorflow as tf
-#import functools
-import itertools
 import sys
 
 sys.path.append("./codes")
@@ -25,11 +23,6 @@ import net_param
 datasets = dataset.dataset(FLAGS.traj_file,FLAGS.fold_file,FLAGS.tactic_file,FLAGS.fold,
                            FLAGS.lstm_max_sequence_length,FLAGS.lstm_input_type)
 #utils.showProperties(datasets)
-
-C53_combs = list(itertools.combinations([0,1,2,3,4],3))
-C52_combs = list(itertools.combinations([0,1,2,3,4],2))
-C55_combs = list(itertools.combinations([0,1,2,3,4],5))
-np_nchoosek = [C53_combs,C52_combs,C55_combs]
 
 
 tf.reset_default_graph()
@@ -117,7 +110,7 @@ instNet_shape = np.array([np.append(pretrain_shape,len(datasets.C5k_CLASS[0])),
                          np.int32)
 
 print(instNet_shape)
-num_inst = np.array([10,10,1],np.int32) # 5 choose 3 key players, 5 choose 2 key players, 5 choose 3 key players 
+num_inst = np.array([len(nk) for nk in datasets.np_nchoosek],np.int32)
 miNet_common_acfun = FLAGS.miNet_common_acfun
 acfunList = []
 for h in range(FLAGS.miNet_num_hidden_layer):
