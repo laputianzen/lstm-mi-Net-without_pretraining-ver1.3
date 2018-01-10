@@ -65,7 +65,7 @@ flags.DEFINE_integer("fold", 0, "fold")
 # Optimizer settings
 flags.DEFINE_string('optimizer','RMSProp','optimizer')
 #@FLAGS.optimizer = 'RMSProp'
-tf.app.flags.DEFINE_float("supervised_learning_rate", 0.01, "learning rate") 
+tf.app.flags.DEFINE_float("supervised_learning_rate", 0.001, "learning rate") 
 #@FLAGS.supervised_learning_rate = 0.01
 flags.DEFINE_string('supervised_weight_decay','constant','supervised_weight_decay')
 #@FLAGS.supervised_weight_decay = 'constant' #exponential, piecewise, polynomial
@@ -82,13 +82,13 @@ flags.DEFINE_integer("finetuning_summary_step", 10, "finetuning_summary_step")
 #@FLAGS.finetuning_summary_step = 10
 flags.DEFINE_integer("finetuning_saving_epochs", 1, "finetuning_saving_epochs")
 #@FLAGS.finetuning_saving_epochs = 1
-flags.DEFINE_integer("save_dec_epochs", 50, "save_dec_epochs")
+flags.DEFINE_integer("save_dec_epochs", 0, "save_dec_epochs")
 #@FLAGS.save_dec_epochs = 50
 flags.DEFINE_boolean('fine_tune_resume',True,'fine_tune_resume')
 #@FLAGS.fine_tune_resume = True
 
 # regularization 
-tf.app.flags.DEFINE_float('decode_beta',0.1,'decode_beta')
+tf.app.flags.DEFINE_float('decode_beta',1,'decode_beta')
 #@FLAGS.decode_beta = 0.1
 
 # Directories
@@ -96,7 +96,7 @@ tf.app.flags.DEFINE_float('decode_beta',0.1,'decode_beta')
 
 
 # LSTM Architecture Specific Flags
-flags.DEFINE_string('lstm_type', 'BasicLSTM','lstm_type')
+flags.DEFINE_string('lstm_type', 'GRU','lstm_type')
 #@FLAGS.lstm_type = 'BasicLSTM'
 flags.DEFINE_boolean('use_peepholes',True,'use_peepholes')
 #@FLAGS.use_peepholes=True
@@ -104,9 +104,9 @@ flags.DEFINE_integer("lstm_hidden_dim", 256, "LSTM hidden state dimension")
 #@FLAGS.lstm_hidden_dim = 256
 flags.DEFINE_integer("lstm_max_sequence_length", 450, "LSTM max sequence length")
 #@FLAGS.lstm_max_sequence_length = 450
-flags.DEFINE_string("lstm_input_type", 'P', "LSTM input dimension P=2, P+V=4")
+flags.DEFINE_string("lstm_input_type", 'P', "LSTM input dimension P=2, PV=4")
 #@FLAGS.lstm_input_type = 'P'
-flags.DEFINE_string('lstm_activation', 'softmax','lstm activation function')
+flags.DEFINE_string('lstm_activation', 'tanh','lstm activation function')
 #@FLAGS.lstm_activation = 'softmax'
 
 # miNet Architecture Specific Flags
