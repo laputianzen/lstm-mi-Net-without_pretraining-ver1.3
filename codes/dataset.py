@@ -39,13 +39,16 @@ class dataset(object):
         padS = paddingZeroToTraj(S,max_sequence_length)
         padS = rescale_position(padS,self.MAX_X,self.MAX_Y,self.seqLenMatrix)
         #padS = normalize_data(padS,MAX_X,MAX_Y)
-        padSV= generatePV(padS,self.frameRate,self.seqLenMatrix)
+        #padSV= generatePV(padS,self.frameRate,self.seqLenMatrix)
         if input_mode == 'P':
             self.dataTraj = padS
             self.input_feature_dim = 2
-        elif input_mode == 'P+V':
-            self.dataTraj = padSV
+        elif input_mode == 'PV':
+            self.dataTraj = generatePV(padS,self.frameRate,self.seqLenMatrix)
             self.input_feature_dim = 4
+        elif input_mode == 'PVA':
+            self.dataTraj = generatePVA(padS,self.frameRate,self.seqLenMatrix)
+            self.input_feature_dim = 6           
         
         self = load_tacticInfo(self)
         self.videoIndex,self.gtRoleOrder,self.keyPlayerOrder = load_gtInfo(tactic_file)
@@ -114,7 +117,7 @@ def generatePV(padS,frameRate,seqLenMatrix,showDatasetHistogram=False):
     rawV[:,:,-1,:] = 0
     for v in range(len(seqLenMatrix)):
         last_frame_idx = seqLenMatrix[v,0] - 1
-        rawV[:,:,last_frame_idx,:] = rawV[:,:,last_frame_idx-1,:]
+        rawV[v,:,last_frame_idx,:] = rawV[v,:,last_frame_idx-1,:]
 
     padSV[:,:,:,2] = rawV[:,:,:,0]
     padSV[:,:,:,3] = rawV[:,:,:,1]
@@ -126,6 +129,31 @@ def generatePV(padS,frameRate,seqLenMatrix,showDatasetHistogram=False):
     #padSV[:,:,:,3] = nV[:,:,:,1]  
 
     return padSV    
+
+def generatePVA(padS,frameRate,seqLenMatrix):
+    padSVA = np.zeros([padS.shape[0],padS.shape[1],padS.shape[2],padS.shape[3]*3],dtype=np.float32)
+    padSVA[:,:,:,0] = padS[:,:,:,0]
+    padSVA[:,:,:,1] = padS[:,:,:,1]
+    
+    rawV = (np.roll(padS,-1,axis=2) - padS)*frameRate
+    # set final step to 0
+    rawV[:,:,-1,:] = 0
+    for v in range(len(seqLenMatrix)):
+        last_frame_idx = seqLenMatrix[v,0] - 1
+        rawV[v,:,last_frame_idx,:] = rawV[v,:,last_frame_idx-1,:]
+    padSVA[:,:,:,2] = rawV[:,:,:,0]
+    padSVA[:,:,:,3] = rawV[:,:,:,1]
+    
+    rawA = (np.roll(rawV,-1,axis=2) - rawV)*frameRate
+    # set final step to 0
+    rawA[:,:,-1,:] = 0
+    for v in range(len(seqLenMatrix)):
+        last_frame_idx = seqLenMatrix[v,0] - 1
+        rawA[v,:,last_frame_idx,:] = rawA[v,:,last_frame_idx-1,:]       
+    padSVA[:,:,:,4] = rawA[:,:,:,0]
+    padSVA[:,:,:,5] = rawA[:,:,:,1]        
+    
+    return padSVA 
     
 def standardize_velocity(rawV,seqLenMatrix): #mean is 0
     nPadV= np.zeros_like(rawV,dtype=np.float32)
