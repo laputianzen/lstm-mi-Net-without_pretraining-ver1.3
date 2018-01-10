@@ -102,11 +102,9 @@ sess = tf.Session(config=config)#tf.InteractiveSession()
 # 
 #==============================================================================
 
-pretrain_shape = net_param.createPretrainShape(FLAGS.lstm_hidden_dim,
+pretrain_shape = net_param.createPretrainShape(FLAGS.lstm_hidden_dim * len(FLAGS.nk_pooling.split('_')),
                                                FLAGS.miNet_last_hidden_dim,
                                                FLAGS.miNet_num_hidden_layer)
-print(pretrain_shape)  
-                    
 
 instNet_shape = np.array([np.append(pretrain_shape,len(datasets.C5k_CLASS[0])),
                           np.append(pretrain_shape,len(datasets.C5k_CLASS[1])),
