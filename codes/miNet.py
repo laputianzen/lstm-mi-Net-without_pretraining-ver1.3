@@ -337,8 +337,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             
         offset = tf.constant(instIdx)
         for k in range(len(instNetList)):
-            with tf.name_scope('C5{0}'.format(dataset.k[k])):
-                out_Y, out_y, out_maxInst = instNetList[k].MIL(tf.transpose(inputs[k],perm=(1,0,2)),keep_prob_)
+            #with tf.name_scope('C5{0}'.format(dataset.k[k])):
+            with tf.variable_scope('C5{0}'.format(dataset.k[k])):
+                out_Y, out_y, out_maxInst = instNetList[k].MIL(tf.transpose(inputs[k],perm=(1,0,2)),k,keep_prob_)
                 
             bagOuts.append(out_Y)
             instOuts.append(out_y)
