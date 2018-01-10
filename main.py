@@ -66,7 +66,7 @@ nchoosek_inputs, nk_local_vars = nchoosek_grouping(ae,datasets.np_nchoosek,datas
 # batch_seqlen = np.reshape(seqLenMatrix[0:bb,:],(-1))
 # with tf.Session() as sess:
 #     sess.run(tf.global_variables_initializer())
-#     last = sess.run(ae.last_output, feed_dict={p_input:A1,seqlen: batch_seqlen})
+#     last,sd, loss = sess.run([ae.last_output,ae.squared_difference,ae.loss], feed_dict={p_input:A1,seqlen: batch_seqlen})
 #     c53,c52,c55 = sess.run([tf_C53_combs,tf_C52_combs,tf_C55_combs]
 #         ,feed_dict={p_input:A1,seqlen: batch_seqlen})    
 #     c53i,c52i,c55i = sess.run([C53_input, C52_input, C55_input]

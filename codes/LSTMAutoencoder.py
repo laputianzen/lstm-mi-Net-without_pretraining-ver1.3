@@ -138,12 +138,23 @@ class LSTMAutoencoder(object):
 #     ball_dim = tf.stack([ball_dim_x,ball_dim_y], axis=0)
 #     self.ball_dim = tf.transpose(ball_dim,perm=(2,1,0))
 # =============================================================================
-    self.difference = (self.input_ - self.output_) #*self.ball_dim
-    self.exact_difference = tf.multiply(self.difference,self.seqMask)  
-    self.l2_norm = tf.norm(self.exact_difference,axis=2)
-    #self.loss = tf.reduce_sum(tf.norm(self.exact_difference,axis=2))
-    self.loss = tf.reduce_mean(tf.square(self.exact_difference))
-    #self.loss = tf.reduce_mean(tf.norm((self.input_ - self.output_),axis=2))
+    
+    #Original loss calulation 
+    #self.difference = (self.input_ - self.output_) #*self.ball_dim
+    #self.exact_difference = tf.multiply(self.difference,self.seqMask)  
+    #self.l2_norm = tf.norm(self.exact_difference,axis=2)
+    #self.loss = tf.reduce_mean(tf.square(self.exact_difference))
+    
+    
+    #New more gradient-friendly way
+    self.squared_difference = tf.squared_difference(self.input_, self.output_) / self.elem_num
+    exact_difference = tf.multiply(self.squared_difference,self.seqMask)
+    squared_difference_sum  = tf.reduce_sum(exact_difference,axis=[0,2])
+    mean_squared_difference = tf.divide(squared_difference_sum,tf.cast(seqlen,tf.float32))
+    self.loss = tf.reduce_mean(mean_squared_difference)
+
+
+    
     self.output = tf.transpose(self.output_, perm=[1,0,2])
 # =============================================================================
 #     if optimizer is None :

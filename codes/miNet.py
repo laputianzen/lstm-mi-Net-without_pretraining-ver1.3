@@ -404,9 +404,11 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         
         num_train = len(dataset.trainIdx)
         regularization = tf.get_collection('decode_loss')
-        decode_beta = tf.cast(FLAGS.decode_beta,tf.float32)
-        normalized_regularization = tf.sqrt(regularization)*tf.constant(dataset.MAX_Y,dtype=tf.float32) 
-        loss = x_entropy + decode_beta * tf.squeeze(normalized_regularization,[0])
+        decode_beta = FLAGS.decode_beta#tf.cast(FLAGS.decode_beta,tf.float32)
+        normalized_regularization = regularization
+# =============================================================================
+#         normalized_regularization = tf.sqrt(regularization)*tf.constant(dataset.MAX_Y,dtype=tf.float32) 
+# =============================================================================
    
         train_x_entropy_op = tf.summary.scalar('train/x_entropy_loss',x_entropy)
         train_aelstm_op = tf.summary.scalar('train/aelstm_loss',tf.squeeze(normalized_regularization,[0]))
