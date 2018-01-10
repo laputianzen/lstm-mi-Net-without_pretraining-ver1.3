@@ -55,7 +55,7 @@ tf.add_to_collection('decode_loss',ae.loss)
 tf.add_to_collection('ae_lstm/lastoutput',ae.last_output) #'aelstm_lastoutput'
 tf.add_to_collection('ae_lstm/dec_output',ae.output)
 
-nchoosek_inputs, tf_C53_combs, tf_C52_combs, tf_C55_combs, C53_input, C52_input, C55_input= nchoosek_grouping(ae,np_nchoosek,datasets.numPlayer)
+nchoosek_inputs, nk_local_vars = nchoosek_grouping(ae,datasets.np_nchoosek,datasets.numPlayer,FLAGS.nk_pooling)
 
 # =============================================================================
 # bb = 4
