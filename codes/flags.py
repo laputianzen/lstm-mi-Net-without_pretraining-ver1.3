@@ -141,6 +141,8 @@ flags.DEFINE_boolean('auto_load_ckpt',True,'auto_load_ckpt')
 #@FLAGS.auto_load_ckpt = True
 flags.DEFINE_boolean('save_gradints',True,'save_gradints')
 #@FLAGS.save_gradints = True
+flags.DEFINE_boolean('shrink_label',False,'shrink label to [0.2,0.5]')
+#FLAGS.shrink_label
  
 
 flags.DEFINE_string('exp_dir', 'experiment',

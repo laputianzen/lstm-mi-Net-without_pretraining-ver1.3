@@ -660,6 +660,9 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
 
         _, batch_multi_Y, batch_multi_KPlabel = readmat.multi_class_read(datadir,file_str,num_inst,dataset)
         num_train = len(batch_multi_Y)
+        if FLAGS.shrink_label:
+            batch_multi_Y = 0.3 * batch_multi_Y + 0.2
+            print('positive label: %f, negative label: %f' %(batch_multi_Y.max(),batch_multi_Y.min()))
         strBagShape = "the shape of bags is ({0},{1})".format(batch_multi_Y.shape[0],batch_multi_Y.shape[1])
         print(strBagShape)
         batch_multi_X = dataset.dataTraj[trainIdx,:]
@@ -669,6 +672,10 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
         test_file_str= '{0}ZoneVelocitySoftAssign(R=16,s=10){1}_test%d.mat' %(fold+1) 
         _, test_multi_Y, test_multi_label = readmat.multi_class_read(testdir,test_file_str,num_inst,dataset)       
         num_test = len(test_multi_Y)
+        if FLAGS.shrink_label:
+            test_multi_Y = 0.3 * test_multi_Y + 0.2
+            print('positive label: %f, negative label: %f' %(test_multi_Y.max(),test_multi_Y.min()))
+
         strBagShape = "the shape of bags is ({0},{1})".format(test_multi_Y.shape[0],test_multi_Y.shape[1])
         print(strBagShape)
         test_multi_X = dataset.dataTraj[testIdx,:]
@@ -749,6 +756,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             
             filename = FLAGS._confusion_dir + '/Fold{0}_Epoch{1}_{2}.csv'.format(fold,actual_epochs,phase)
             Y_label = data['label']
+            if FLAGS.shrink_label:
+                Y_label = (Y_label - 0.2 ) / 0.3
             metric.ConfusionMatrix(Y_pred,Y_label,dataset,filename,FLAGS._ipython_console_txt)
             
             

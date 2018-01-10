@@ -54,6 +54,7 @@ FLAGS.lstm_activation = 'softmax'#'relu6' # default tanh
 FLAGS.flush_secs  = 120
 FLAGS.auto_load_ckpt = True
 FLAGS.save_gradints = True
+FLAGS.shrink_label = False
 #FLAGS.MAX_X = 326
 #FLAGS.MAX_Y = 348
 #FLAGS.frameRate = 30
