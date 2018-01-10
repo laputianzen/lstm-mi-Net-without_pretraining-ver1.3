@@ -605,7 +605,8 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             split = model_ckpt.split("-")
             resume_step = int(split[-1])
             saver.restore(sess, model_ckpt)
-            model_ckpt = split[0]
+            #model_ckpt = split[0]
+            model_ckpt = model_ckpt[0:(model_ckpt.find('.ckpt-')+5)]
             checkpoint_paths = [(log_path + x[:-6]) for x in os.listdir(log_path) if x.endswith(".index")]
             saver.recover_last_checkpoints(checkpoint_paths)
             if FLAGS.fine_tune_resume : #Resume to designed epochs (Designed - last checkpoint)
@@ -888,27 +889,27 @@ def main_supervised(instNetList,num_inst,inputs,dataset,FLAGS):
             
             
             ''' save decode result '''
-            dec_output = tf.get_collection('ae_lstm/dec_output')
-            if actual_epochs % FLAGS.save_dec_epochs == 0:
-                selectIndex = np.arange(num_train)
-                feed_dict = fetch_data(train_data,selectIndex,False)
-                dec_val = run_step(sess,dec_output,feed_dict)
-                dec_val = dec_val[0]
-                LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
-                                             dataset.MAX_X,dataset.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir,
-                                             dataset.trainIdx)
+            if FLAGS.save_dec_epochs != 0:
+                dec_output = tf.get_collection('ae_lstm/dec_output')
+                if actual_epochs % FLAGS.save_dec_epochs == 0:
+                    selectIndex = np.arange(num_train)
+                    feed_dict = fetch_data(train_data,selectIndex,False)
+                    dec_val = run_step(sess,dec_output,feed_dict)
+                    dec_val = dec_val[0]
+                    LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+                                                 dataset.MAX_X,dataset.MAX_Y,actual_epochs,FLAGS._dec_output_train_dir,
+                                                 dataset.trainIdx)
 
-                selectIndex = np.arange(num_test)
-                feed_dict = fetch_data(test_data,selectIndex,False)
-                dec_val = run_step(sess,dec_output,feed_dict)
-                dec_val = dec_val[0]
+                    selectIndex = np.arange(num_test)
+                    feed_dict = fetch_data(test_data,selectIndex,False)
+                    dec_val = run_step(sess,dec_output,feed_dict)
+                    dec_val = dec_val[0]
             
-                LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
-                                             dataset.MAX_X,dataset.MAX_Y,actual_epochs,FLAGS._dec_output_test_dir,
-                                             dataset.testIdx)
-                print('finish saving decode result!!')
-
-         
+                    LSTMAutoencoder.plot_traj_3d(dec_val,feed_dict[FLAGS.p_input],feed_dict[FLAGS.seqlen],
+                                                 dataset.MAX_X,dataset.MAX_Y,actual_epochs,FLAGS._dec_output_test_dir,
+                                                 dataset.testIdx)
+                    print('finish saving decode result!!')
+            
         ''' for final epochs files doesn't exist '''           
         
         ''' evaluate test performance after fininshing training (need add training performance)'''   
